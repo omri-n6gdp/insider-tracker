@@ -50,3 +50,68 @@ def get_prices(ticker, period="1y"):
         return {"ticker": sym, "available": True, "candles": candles}
 
     return {"ticker": sym, "available": bool(cached), "candles": cached or []}
+
+
+def _download_info(ticker):
+    """Isolated yfinance fundamentals call. Returns the raw .info dict."""
+    import yfinance as yf
+
+    return yf.Ticker(ticker).info or {}
+
+
+def _shape_fundamentals(sym, info):
+    return {
+        "ticker": sym,
+        "name": info.get("longName") or info.get("shortName") or sym,
+        "sector": info.get("sector"),
+        "industry": info.get("industry"),
+        "market_cap": info.get("marketCap"),
+        "pe": info.get("trailingPE"),
+        "pb": info.get("priceToBook"),
+        "dividend_yield": info.get("dividendYield"),
+        "week52_low": info.get("fiftyTwoWeekLow"),
+        "week52_high": info.get("fiftyTwoWeekHigh"),
+        "currency": info.get("currency"),
+        "fetched_at": time.time(),
+    }
+
+
+def get_fundamentals(ticker):
+    sym = _norm(ticker)
+    cached = db.get_fundamentals(sym)
+    if cached and (time.time() - float(cached.get("fetched_at") or 0)) < FUND_TTL:
+        cached["available"] = True
+        return cached
+
+    try:
+        info = _download_info(sym)
+    except Exception:
+        info = {}
+
+    if info:
+        data = _shape_fundamentals(sym, info)
+        db.save_fundamentals(sym, data)
+        data["available"] = True
+        return data
+
+    if cached:
+        cached["available"] = True
+        return cached
+    return {"ticker": sym, "available": False}
+
+
+def get_quote(ticker):
+    """Last price + day change derived from the cached/fetched candles."""
+    data = get_prices(ticker)
+    candles = data["candles"]
+    if not candles:
+        return {"ticker": data["ticker"], "available": False,
+                "price": None, "change": None, "change_pct": None}
+    last = candles[-1]["close"]
+    prev = candles[-2]["close"] if len(candles) > 1 else last
+    change = last - prev
+    return {
+        "ticker": data["ticker"], "available": True, "price": last,
+        "change": change,
+        "change_pct": (change / prev * 100) if prev else 0.0,
+    }

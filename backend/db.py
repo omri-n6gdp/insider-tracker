@@ -301,3 +301,27 @@ def get_prices(ticker):
             (ticker,),
         ).fetchall()
     return [dict(r) for r in rows]
+
+
+# ---------------------------------------------------------------- fundamentals
+_FUND_COLS = ["ticker", "name", "sector", "industry", "market_cap", "pe", "pb",
+              "dividend_yield", "week52_low", "week52_high", "currency",
+              "fetched_at"]
+
+
+def save_fundamentals(ticker, data):
+    with _lock:
+        c = _connect()
+        c.execute(
+            "INSERT OR REPLACE INTO fundamentals "
+            f"({','.join(_FUND_COLS)}) VALUES ({','.join('?' for _ in _FUND_COLS)})",
+            [data.get(k) for k in _FUND_COLS],
+        )
+        c.commit()
+
+
+def get_fundamentals(ticker):
+    with _lock:
+        c = _connect()
+        r = c.execute("SELECT * FROM fundamentals WHERE ticker=?", (ticker,)).fetchone()
+    return dict(r) if r else None
