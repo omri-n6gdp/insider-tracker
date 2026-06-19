@@ -15,7 +15,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import db, sec, market
+from . import db, sec, market, holdings
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -39,6 +39,19 @@ _refresh_lock = threading.Lock()
 
 def _now():
     return datetime.now(timezone.utc).isoformat()
+
+
+def _load_dotenv():
+    """Minimal .env reader so TRADING212_API_KEY can live in a file."""
+    path = os.path.join(os.path.dirname(__file__), "..", ".env")
+    if not os.path.exists(path):
+        return
+    with open(path) as fh:
+        for line in fh:
+            line = line.strip()
+            if line and not line.startswith("#") and "=" in line:
+                k, v = line.split("=", 1)
+                os.environ.setdefault(k.strip(), v.strip())
 
 
 def do_refresh(pages):
@@ -78,6 +91,7 @@ def _worker():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    _load_dotenv()
     db.init_db()
     if db.count() == 0:
         db.insert_trades(sample_rows())
@@ -144,6 +158,11 @@ def api_fundamentals(ticker: str):
 @app.get("/api/quote/{ticker}")
 def api_quote(ticker: str):
     return market.get_quote(ticker)
+
+
+@app.get("/api/holdings")
+def api_holdings(days: int = 30):
+    return holdings.get_holdings(insider_days=days)
 
 
 @app.post("/api/refresh")
