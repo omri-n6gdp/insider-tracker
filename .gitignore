@@ -1,0 +1,21 @@
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Local data / logs (regenerated at runtime)
+data/*.db
+data/*.db-wal
+data/*.db-shm
+data/*.log
+
+# Secrets
+.env
+
+# Node / frontend build
+node_modules/
+frontend/dist/
+frontend/node_modules/
+
+# macOS
+.DS_Store
