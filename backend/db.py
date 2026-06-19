@@ -3,6 +3,7 @@ import sqlite3
 import threading
 import os
 import json
+import time
 
 from . import aggregate
 
@@ -355,12 +356,15 @@ def insider_summary(ticker, days=30):
     }
 
 
+# Note: a position's `ppl` (profit/loss) is intentionally NOT cached here — it
+# is too volatile to be meaningful once stale; live responses carry it, cache
+# responses don't.
 _HOLD_COLS = ["ticker", "raw_ticker", "qty", "avg_price", "current_price",
               "is_us_equity", "fetched_at"]
 
 
 def save_holdings_cache(positions):
-    now = __import__("time").time()
+    now = time.time()
     with _lock:
         c = _connect()
         c.execute("DELETE FROM holdings_cache")

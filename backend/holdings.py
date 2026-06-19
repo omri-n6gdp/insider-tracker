@@ -37,7 +37,9 @@ def parse_position(p):
     is_us = raw.endswith("_US_EQ")
     return {
         "raw_ticker": raw,
-        "ticker": raw.split("_")[0] if is_us else raw,
+        # Strip the known suffix (not split on "_") so symbols with an
+        # underscore in the company part survive (e.g. BRK_B_US_EQ -> BRK_B).
+        "ticker": raw[: -len("_US_EQ")] if is_us else raw,
         "is_us_equity": is_us,
         "qty": float(p.get("quantity") or 0),
         "avg_price": float(p.get("averagePrice") or 0),

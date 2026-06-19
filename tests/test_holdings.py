@@ -12,6 +12,13 @@ def test_parse_position_us_vs_non_us():
     assert lse["is_us_equity"] is False
     assert lse["ticker"] == "VWRLl_EQ"
 
+    # Underscore inside the symbol part must survive (suffix-strip, not split).
+    brk = holdings.parse_position({
+        "ticker": "BRK_B_US_EQ", "quantity": 1, "averagePrice": 1,
+        "currentPrice": 1, "ppl": 0})
+    assert brk["is_us_equity"] is True
+    assert brk["ticker"] == "BRK_B"
+
 
 def test_get_holdings_attaches_insider_summary(temp_db, monkeypatch):
     from backend import holdings, db
@@ -52,7 +59,17 @@ def test_get_holdings_falls_back_to_cache_on_error(temp_db, monkeypatch):
     def boom():
         raise RuntimeError("network down")
 
+    db.insert_trades([
+        {"uid": "y:0", "accession": "y", "ticker": "AAPL", "kind": "sell",
+         "period": "2026-06-18", "code": "S", "ad": "D", "is_derivative": 0,
+         "owner_cik": "8", "shares": 1, "price": 1, "value": 1_000_000,
+         "filed_at": "2026-06-18", "source": "live"},
+    ])
+
     monkeypatch.setattr(holdings, "_fetch_portfolio", boom)
-    res = holdings.get_holdings()
+    res = holdings.get_holdings(insider_days=3650)
     assert res["source"] == "cache"
     assert res["positions"][0]["ticker"] == "AAPL"
+    # cross-reference still runs on cache-served positions
+    assert res["positions"][0]["insider"] is not None
+    assert res["positions"][0]["insider"]["sells"] == 1

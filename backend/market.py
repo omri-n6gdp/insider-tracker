@@ -4,6 +4,7 @@ Network calls live in `_download_history` / `_download_info` so tests can
 monkeypatch them. Everything degrades gracefully: on a fetch failure we serve
 whatever is cached and mark availability accordingly.
 """
+import math
 import time
 
 from . import db
@@ -23,10 +24,15 @@ def _download_history(ticker, period="1y"):
     hist = yf.Ticker(ticker).history(period=period, auto_adjust=False)
     out = []
     for idx, row in hist.iterrows():
+        o, h, l, c = (float(row["Open"]), float(row["High"]),
+                      float(row["Low"]), float(row["Close"]))
+        # The current partial trading day often comes back as NaN; skip it
+        # rather than emit NaN (not valid JSON, and breaks get_quote math).
+        if any(math.isnan(v) for v in (o, h, l, c)):
+            continue
         out.append({
             "date": idx.strftime("%Y-%m-%d"),
-            "open": float(row["Open"]), "high": float(row["High"]),
-            "low": float(row["Low"]), "close": float(row["Close"]),
+            "open": o, "high": h, "low": l, "close": c,
             "volume": float(row["Volume"]),
         })
     return out
