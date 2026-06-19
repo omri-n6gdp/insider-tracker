@@ -36,6 +36,26 @@ def test_compile_keeps_distinct_insiders_separate():
     assert len(out) == 2
 
 
+def test_compile_collects_distinct_accessions():
+    rows = [
+        _line(uid="a:0", accession="a"),
+        _line(uid="a:1", accession="a"),  # same accession -> deduped in list
+    ]
+    out = compile_trades(rows)
+    assert out[0]["accessions"] == ["a"]
+    assert out[0]["line_count"] == 2
+
+
+def test_compile_weights_price_even_when_value_field_is_zero():
+    # Defends against a data source that stores price but leaves value at 0.
+    rows = [
+        _line(shares=100, price=10.0, value=0.0, uid="a:0"),
+        _line(shares=50, price=12.0, value=0.0, uid="a:1"),
+    ]
+    out = compile_trades(rows)
+    assert round(out[0]["price"], 4) == round((100 * 10 + 50 * 12) / 150, 4)
+
+
 def test_compile_ignores_zero_price_lines_in_weighting():
     rows = [
         _line(shares=100, price=10.0, value=1000.0, uid="a:0"),

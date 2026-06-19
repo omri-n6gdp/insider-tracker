@@ -183,6 +183,9 @@ def query_trades(kind="all", role=None, ticker=None, q=None, min_value=0,
             rows = c.execute(sql, p).fetchall()
         return [dict(r) for r in rows]
 
+    # Compiled path: min_value/sort/pagination are applied in Python *after*
+    # compiling, so they act on per-group totals (not individual lines). That's
+    # why min_value is deliberately not added to the WHERE clause here.
     sql = f"SELECT * FROM trades {clause} ORDER BY filed_at DESC, id DESC"
     with _lock:
         c = _connect()

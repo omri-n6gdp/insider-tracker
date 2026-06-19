@@ -39,7 +39,7 @@ def compile_trades(rows):
         g["_sum_value"] += value
         if price and price > 0:
             g["_priced_shares"] += shares
-            g["_priced_value"] += value
+            g["_priced_value"] += shares * price  # robust VWAP, not stored value
         g["line_count"] += 1
 
         acc = r.get("accession")
@@ -51,7 +51,7 @@ def compile_trades(rows):
             g["_best_filed"] = filed
 
         idx = _uid_index(r.get("uid"))
-        if idx >= g["_max_idx"]:
+        if idx > g["_max_idx"]:  # highest line index wins; ties keep first-seen
             g["_max_idx"] = idx
             g["shares_after"] = r.get("shares_after")
 

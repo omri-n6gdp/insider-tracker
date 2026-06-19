@@ -30,3 +30,12 @@ def test_query_trades_compiled_min_value_filters_on_total(temp_db):
     ])
     # Each line is < 3000, but the compiled total (3200) clears the filter.
     assert len(temp_db.query_trades(compiled=True, min_value=3000)) == 1
+
+
+def test_query_trades_compiled_sort_by_value(temp_db):
+    temp_db.insert_trades([
+        _line("a:0", owner_cik="1", ticker="AAA", shares=10, price=1.0, value=10.0),
+        _line("b:0", owner_cik="2", ticker="BBB", shares=100, price=10.0, value=1000.0),
+    ])
+    out = temp_db.query_trades(compiled=True, sort="value")
+    assert [r["ticker"] for r in out] == ["BBB", "AAA"]
