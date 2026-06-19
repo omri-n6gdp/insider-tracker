@@ -31,6 +31,16 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   4-page backfill (~80s, ~400 filings) then refreshes 1 page every
   `INSIDER_REFRESH_SECONDS` (default 300). Serves `/api/*` then mounts the
   static `frontend/` at `/`. `STATUS` dict drives the live indicator.
+- **`backend/aggregate.py`** — pure `compile_trades(rows)` that collapses
+  multiple Form 4 lines into one logical trade (volume-weighted price). Used by
+  `db.query_trades(compiled=True)` and exposed via `/api/trades?compiled=`.
+- **`backend/market.py`** — yfinance prices + fundamentals, cached in the
+  `prices`/`fundamentals` tables. Network calls isolated for testing. Endpoints:
+  `/api/prices/{ticker}`, `/api/fundamentals/{ticker}`, `/api/quote/{ticker}`.
+- **`backend/holdings.py`** — read-only Trading 212 portfolio via
+  `TRADING212_API_KEY` (from `.env`), cached in `holdings_cache`. US-equity
+  positions get an insider summary + sell-alert. Endpoint: `/api/holdings`.
+- **Tests:** `pytest` from the project root (`./.venv/bin/python -m pytest`).
 - **`frontend/`** — vanilla HTML/CSS/JS dashboard. Dark editorial-terminal
   aesthetic: Fraunces serif masthead, IBM Plex Mono numbers, mint buys / coral
   sells / gold cluster signal. Polls `/api/status` every 15s and reloads when
