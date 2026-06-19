@@ -1,11 +1,14 @@
 """Trading 212 holdings, cross-referenced with insider activity.
 
-Read-only. Uses the public T212 API key from the TRADING212_API_KEY env var
-(the same key used by the owner's Trading 212 dashboard). Network call is
-isolated in `_fetch_portfolio` for testing. US-equity positions
-(ticker suffix `_US_EQ`) get an insider summary; everything else is shown but
-marked with no insider data, because ETFs/non-US names have no Form 4 filings.
+Read-only. Authenticates with the same credentials as the owner's Trading 212
+dashboard: TRADING212_API_KEY, plus an optional TRADING212_API_SECRET. When a
+secret is set, the Authorization header is HTTP Basic `base64(key:secret)`;
+otherwise it's the raw key. Network call is isolated in `_fetch_portfolio` for
+testing. US-equity positions (ticker suffix `_US_EQ`) get an insider summary;
+everything else is shown but marked with no insider data, because ETFs/non-US
+names have no Form 4 filings.
 """
+import base64
 import json
 import os
 import urllib.request
@@ -15,18 +18,30 @@ from . import db
 T212_BASE = "https://live.trading212.com/api/v0"
 
 
-def _api_key():
-    return os.environ.get("TRADING212_API_KEY", "").strip()
+def _auth_header():
+    """Build the T212 Authorization header, or None if no key is configured.
+
+    Mirrors the owner's dashboard: Basic base64(key:secret) when a secret is
+    present, else the raw key.
+    """
+    key = os.environ.get("TRADING212_API_KEY", "").strip()
+    secret = os.environ.get("TRADING212_API_SECRET", "").strip()
+    if not key:
+        return None
+    if secret:
+        cred = base64.b64encode(f"{key}:{secret}".encode()).decode()
+        return f"Basic {cred}"
+    return key
 
 
 def _fetch_portfolio():
     """Isolated T212 call. Returns the raw positions list (or [] if no key)."""
-    key = _api_key()
-    if not key:
+    auth = _auth_header()
+    if not auth:
         return []
     req = urllib.request.Request(
         T212_BASE + "/equity/portfolio",
-        headers={"Authorization": key, "User-Agent": "insider-tracker/2.0"},
+        headers={"Authorization": auth, "User-Agent": "insider-tracker/2.0"},
     )
     with urllib.request.urlopen(req, timeout=20) as r:
         return json.loads(r.read().decode("utf-8", "replace"))

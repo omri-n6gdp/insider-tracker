@@ -20,6 +20,29 @@ def test_parse_position_us_vs_non_us():
     assert brk["ticker"] == "BRK_B"
 
 
+def test_auth_header_raw_key_when_no_secret(monkeypatch):
+    from backend import holdings
+    monkeypatch.setenv("TRADING212_API_KEY", "abc123")
+    monkeypatch.delenv("TRADING212_API_SECRET", raising=False)
+    assert holdings._auth_header() == "abc123"
+
+
+def test_auth_header_basic_when_secret_present(monkeypatch):
+    import base64
+    from backend import holdings
+    monkeypatch.setenv("TRADING212_API_KEY", "key")
+    monkeypatch.setenv("TRADING212_API_SECRET", "secret")
+    expected = "Basic " + base64.b64encode(b"key:secret").decode()
+    assert holdings._auth_header() == expected
+
+
+def test_auth_header_none_without_key(monkeypatch):
+    from backend import holdings
+    monkeypatch.delenv("TRADING212_API_KEY", raising=False)
+    monkeypatch.delenv("TRADING212_API_SECRET", raising=False)
+    assert holdings._auth_header() is None
+
+
 def test_get_holdings_attaches_insider_summary(temp_db, monkeypatch):
     from backend import holdings, db
 
