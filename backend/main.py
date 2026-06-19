@@ -15,7 +15,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import db, sec
+from . import db, sec, market
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -129,6 +129,21 @@ def api_clusters(days: int = 14, min_owners: int = 2):
 @app.get("/api/tickers")
 def api_tickers():
     return {"tickers": db.tickers()}
+
+
+@app.get("/api/prices/{ticker}")
+def api_prices(ticker: str, period: str = "1y"):
+    return market.get_prices(ticker, period)
+
+
+@app.get("/api/fundamentals/{ticker}")
+def api_fundamentals(ticker: str):
+    return market.get_fundamentals(ticker)
+
+
+@app.get("/api/quote/{ticker}")
+def api_quote(ticker: str):
+    return market.get_quote(ticker)
 
 
 @app.post("/api/refresh")
