@@ -4,6 +4,8 @@ import threading
 import os
 import json
 
+from . import aggregate
+
 DB_PATH = os.environ.get(
     "INSIDER_DB",
     os.path.join(os.path.dirname(__file__), "..", "data", "insider.db"),
@@ -146,7 +148,7 @@ def count(source=None):
 
 # ---------------------------------------------------------------- reads
 def query_trades(kind="all", role=None, ticker=None, q=None, min_value=0,
-                 days=None, sort="recent", limit=200, offset=0):
+                 days=None, sort="recent", limit=200, offset=0, compiled=True):
     where = []
     params = []
     if kind and kind != "all":
@@ -162,20 +164,35 @@ def query_trades(kind="all", role=None, ticker=None, q=None, min_value=0,
         where.append("(issuer_name LIKE ? OR owner_name LIKE ? OR ticker LIKE ?)")
         like = f"%{q}%"
         params += [like, like, like.upper()]
-    if min_value:
-        where.append("value >= ?")
-        params.append(float(min_value))
     if days:
         where.append("filed_at >= date('now', ?)")
         params.append(f"-{int(days)} days")
     clause = ("WHERE " + " AND ".join(where)) if where else ""
-    order = "value DESC" if sort == "value" else "filed_at DESC, id DESC"
-    sql = f"SELECT * FROM trades {clause} ORDER BY {order} LIMIT ? OFFSET ?"
-    params += [int(limit), int(offset)]
+
+    if not compiled:
+        w, p = list(where), list(params)
+        if min_value:
+            w.append("value >= ?")
+            p.append(float(min_value))
+        clause2 = ("WHERE " + " AND ".join(w)) if w else ""
+        order = "value DESC" if sort == "value" else "filed_at DESC, id DESC"
+        sql = f"SELECT * FROM trades {clause2} ORDER BY {order} LIMIT ? OFFSET ?"
+        p += [int(limit), int(offset)]
+        with _lock:
+            c = _connect()
+            rows = c.execute(sql, p).fetchall()
+        return [dict(r) for r in rows]
+
+    sql = f"SELECT * FROM trades {clause} ORDER BY filed_at DESC, id DESC"
     with _lock:
         c = _connect()
-        rows = c.execute(sql, params).fetchall()
-    return [dict(r) for r in rows]
+        rows = [dict(r) for r in c.execute(sql, params).fetchall()]
+    rows = aggregate.compile_trades(rows)
+    if min_value:
+        rows = [r for r in rows if (r.get("value") or 0) >= float(min_value)]
+    rows.sort(key=lambda r: ((r.get("value") or 0) if sort == "value"
+                             else (r.get("filed_at") or "")), reverse=True)
+    return rows[int(offset):int(offset) + int(limit)]
 
 
 def stats(days=7):

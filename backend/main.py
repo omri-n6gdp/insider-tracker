@@ -108,10 +108,11 @@ def api_trades(
     sort: str = "recent",
     limit: int = Query(200, le=1000),
     offset: int = 0,
+    compiled: bool = True,
 ):
     rows = db.query_trades(kind=kind, role=role, ticker=ticker, q=q,
                            min_value=min_value, days=days, sort=sort,
-                           limit=limit, offset=offset)
+                           limit=limit, offset=offset, compiled=compiled)
     return {"count": len(rows), "trades": rows}
 
 
