@@ -56,6 +56,19 @@ CREATE INDEX IF NOT EXISTS idx_filed   ON trades(filed_at);
 CREATE INDEX IF NOT EXISTS idx_ticker  ON trades(ticker);
 CREATE INDEX IF NOT EXISTS idx_kind    ON trades(kind);
 CREATE INDEX IF NOT EXISTS idx_value   ON trades(value);
+CREATE TABLE IF NOT EXISTS prices (
+    ticker TEXT, date TEXT, open REAL, high REAL, low REAL, close REAL,
+    volume REAL, PRIMARY KEY (ticker, date)
+);
+CREATE TABLE IF NOT EXISTS fundamentals (
+    ticker TEXT PRIMARY KEY, name TEXT, sector TEXT, industry TEXT,
+    market_cap REAL, pe REAL, pb REAL, dividend_yield REAL,
+    week52_low REAL, week52_high REAL, currency TEXT, fetched_at REAL
+);
+CREATE TABLE IF NOT EXISTS holdings_cache (
+    ticker TEXT, raw_ticker TEXT PRIMARY KEY, qty REAL, avg_price REAL,
+    current_price REAL, is_us_equity INTEGER, fetched_at REAL
+);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -262,3 +275,29 @@ def tickers():
             "GROUP BY ticker ORDER BY n DESC LIMIT 200"
         ).fetchall()
     return [r["ticker"] for r in rows]
+
+
+# ---------------------------------------------------------------- price cache
+def save_prices(ticker, candles):
+    if not candles:
+        return
+    with _lock:
+        c = _connect()
+        c.executemany(
+            "INSERT OR REPLACE INTO prices(ticker,date,open,high,low,close,volume)"
+            " VALUES(?,?,?,?,?,?,?)",
+            [(ticker, x["date"], x["open"], x["high"], x["low"], x["close"],
+              x["volume"]) for x in candles],
+        )
+        c.commit()
+
+
+def get_prices(ticker):
+    with _lock:
+        c = _connect()
+        rows = c.execute(
+            "SELECT date,open,high,low,close,volume FROM prices "
+            "WHERE ticker=? ORDER BY date",
+            (ticker,),
+        ).fetchall()
+    return [dict(r) for r in rows]
