@@ -310,6 +310,7 @@ _FUND_COLS = ["ticker", "name", "sector", "industry", "market_cap", "pe", "pb",
 
 
 def save_fundamentals(ticker, data):
+    data = {**data, "ticker": ticker}  # the explicit arg wins over data["ticker"]
     with _lock:
         c = _connect()
         c.execute(

@@ -25,6 +25,22 @@ def test_get_fundamentals_shapes_and_caches(temp_db, monkeypatch):
     assert d2["pe"] == 30.0
 
 
+def test_get_fundamentals_falls_back_to_stale_cache_on_failure(temp_db, monkeypatch):
+    from backend import market
+
+    # Cached row whose fetched_at is epoch 0 -> always past the TTL.
+    temp_db.save_fundamentals("AAPL", {"ticker": "AAPL", "name": "Apple Inc",
+                                       "sector": "Technology", "fetched_at": 0})
+
+    def boom(ticker):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(market, "_download_info", boom)
+    d = market.get_fundamentals("AAPL")
+    assert d["available"] is True          # stale cache still served
+    assert d["name"] == "Apple Inc"
+
+
 def test_get_quote_from_last_two_candles(temp_db, monkeypatch):
     from backend import market
 

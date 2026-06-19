@@ -20,6 +20,22 @@ def test_get_prices_fetches_then_serves_from_cache(temp_db, monkeypatch):
     assert second["candles"][0]["close"] == 1.5
 
 
+def test_get_prices_falls_back_to_stale_cache_on_fetch_failure(temp_db, monkeypatch):
+    from backend import market
+
+    temp_db.save_prices("AAPL", [{"date": "2026-06-10", "open": 1, "high": 1,
+                                  "low": 1, "close": 50.0, "volume": 1}])
+    temp_db.set_meta("prices_fetched:AAPL", 0)  # epoch 0 -> always expired
+
+    def bad_download(ticker, period="1y"):
+        raise RuntimeError("network down")
+
+    monkeypatch.setattr(market, "_download_history", bad_download)
+    result = market.get_prices("AAPL")
+    assert result["available"] is True          # stale cache still usable
+    assert result["candles"][0]["close"] == 50.0
+
+
 def test_get_prices_normalises_ticker(temp_db, monkeypatch):
     from backend import market
     seen = {}
