@@ -41,6 +41,35 @@ def test_get_fundamentals_falls_back_to_stale_cache_on_failure(temp_db, monkeypa
     assert d["name"] == "Apple Inc"
 
 
+def test_get_fundamentals_strips_nan_for_valid_json(temp_db, monkeypatch):
+    # yfinance returns NaN for metrics that don't apply (no P/E, no dividend).
+    # Those must not reach the response: Starlette's JSONResponse raises on
+    # NaN/Infinity, which would 500 the /api/fundamentals endpoint.
+    import json
+    import math
+
+    from backend import market
+
+    def fake_info(ticker):
+        return {
+            "longName": "Loss Co", "sector": "Energy",
+            "marketCap": 1.0e9, "trailingPE": float("nan"),
+            "dividendYield": float("nan"), "priceToBook": float("inf"),
+        }
+
+    monkeypatch.setattr(market, "_download_info", fake_info)
+    d = market.get_fundamentals("LOSS")
+    assert d["available"] is True
+    assert d["pe"] is None
+    assert d["dividend_yield"] is None
+    assert d["pb"] is None
+    # The whole payload must serialize as strict (NaN/Infinity-free) JSON.
+    json.dumps(d, allow_nan=False)
+    assert not any(
+        isinstance(v, float) and not math.isfinite(v) for v in d.values()
+    )
+
+
 def test_get_quote_from_last_two_candles(temp_db, monkeypatch):
     from backend import market
 

@@ -17,6 +17,15 @@ def _norm(ticker):
     return (ticker or "").strip().upper().replace(".", "-")
 
 
+def _clean_num(v):
+    """yfinance often returns NaN/Infinity for missing metrics (no P/E, no
+    dividend, etc.). Those are not JSON-compliant — Starlette's JSONResponse
+    raises on them and the endpoint would 500 — so coerce them to None."""
+    if isinstance(v, float) and not math.isfinite(v):
+        return None
+    return v
+
+
 def _download_history(ticker, period="1y"):
     """Isolated yfinance price call. Returns a list of candle dicts."""
     import yfinance as yf
@@ -71,12 +80,12 @@ def _shape_fundamentals(sym, info):
         "name": info.get("longName") or info.get("shortName") or sym,
         "sector": info.get("sector"),
         "industry": info.get("industry"),
-        "market_cap": info.get("marketCap"),
-        "pe": info.get("trailingPE"),
-        "pb": info.get("priceToBook"),
-        "dividend_yield": info.get("dividendYield"),
-        "week52_low": info.get("fiftyTwoWeekLow"),
-        "week52_high": info.get("fiftyTwoWeekHigh"),
+        "market_cap": _clean_num(info.get("marketCap")),
+        "pe": _clean_num(info.get("trailingPE")),
+        "pb": _clean_num(info.get("priceToBook")),
+        "dividend_yield": _clean_num(info.get("dividendYield")),
+        "week52_low": _clean_num(info.get("fiftyTwoWeekLow")),
+        "week52_high": _clean_num(info.get("fiftyTwoWeekHigh")),
         "currency": info.get("currency"),
         "fetched_at": time.time(),
     }
