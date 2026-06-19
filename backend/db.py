@@ -326,3 +326,61 @@ def get_fundamentals(ticker):
         c = _connect()
         r = c.execute("SELECT * FROM fundamentals WHERE ticker=?", (ticker,)).fetchone()
     return dict(r) if r else None
+
+
+# ---------------------------------------------------------------- holdings
+def insider_summary(ticker, days=30):
+    """Buy/sell counts + values for a ticker over the last `days`, with a
+    simple sell-alert flag (insiders net-selling by count and by value)."""
+    with _lock:
+        c = _connect()
+        r = c.execute(
+            "SELECT "
+            "SUM(CASE WHEN kind='buy' THEN 1 ELSE 0 END) buys,"
+            "SUM(CASE WHEN kind='sell' THEN 1 ELSE 0 END) sells,"
+            "COALESCE(SUM(CASE WHEN kind='buy' THEN value ELSE 0 END),0) buy_value,"
+            "COALESCE(SUM(CASE WHEN kind='sell' THEN value ELSE 0 END),0) sell_value "
+            "FROM trades WHERE ticker=? AND filed_at >= date('now', ?)",
+            (ticker.upper(), f"-{int(days)} days"),
+        ).fetchone()
+    buys = r["buys"] or 0
+    sells = r["sells"] or 0
+    buy_v = r["buy_value"] or 0
+    sell_v = r["sell_value"] or 0
+    return {
+        "buys": buys, "sells": sells,
+        "buy_value": buy_v, "sell_value": sell_v,
+        "net_value": buy_v - sell_v,
+        "sell_alert": (sells > buys) and (sell_v > buy_v),
+    }
+
+
+_HOLD_COLS = ["ticker", "raw_ticker", "qty", "avg_price", "current_price",
+              "is_us_equity", "fetched_at"]
+
+
+def save_holdings_cache(positions):
+    now = __import__("time").time()
+    with _lock:
+        c = _connect()
+        c.execute("DELETE FROM holdings_cache")
+        c.executemany(
+            f"INSERT INTO holdings_cache ({','.join(_HOLD_COLS)}) "
+            f"VALUES ({','.join('?' for _ in _HOLD_COLS)})",
+            [(p["ticker"], p["raw_ticker"], p.get("qty", 0), p.get("avg_price", 0),
+              p.get("current_price", 0), 1 if p.get("is_us_equity") else 0, now)
+             for p in positions],
+        )
+        c.commit()
+
+
+def get_holdings_cache():
+    with _lock:
+        c = _connect()
+        rows = c.execute("SELECT * FROM holdings_cache").fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["is_us_equity"] = bool(d["is_us_equity"])
+        out.append(d)
+    return out
