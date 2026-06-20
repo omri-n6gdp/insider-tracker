@@ -1,4 +1,4 @@
-import type { Trade, Stats, Cluster, Status, StockDetail } from "./types";
+import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail } from "./types";
 
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -18,4 +18,6 @@ export const api = {
   clusters: () => getJSON<{ clusters: Cluster[] }>("/api/clusters"),
   stock: (ticker: string, period = "1y") =>
     getJSON<StockDetail>(`/api/stock/${encodeURIComponent(ticker)}?period=${period}`),
+  insider: (cik: string) =>
+    getJSON<InsiderDetail>(`/api/insider/${encodeURIComponent(cik)}`),
 };

@@ -55,3 +55,13 @@ export interface StockDetail {
   summary: { buys: number; sells: number; buy_value: number; sell_value: number;
              net_value: number; sell_alert: boolean };
 }
+
+export interface InsiderDetail {
+  owner_cik: string;
+  owner_name: string | null;
+  roles: string | null;
+  tickers: string[];
+  trades: Trade[];
+  summary: { buys: number; sells: number; buy_value: number;
+             sell_value: number; net_value: number };
+}
