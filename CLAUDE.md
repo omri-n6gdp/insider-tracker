@@ -55,7 +55,10 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   runs vite + uvicorn with hot reload. Dark editorial-terminal aesthetic
   (Fraunces masthead, mono numbers, mint buys / coral sells / gold clusters).
   Phase 2A shipped the **Board** (compiled-trade ledger + stat strip + cluster
-  sidebar + filters); the Stock and Insider pages are Phase 2B stubs.
+  sidebar + filters); Phase 2B shipped the **Stock page** (`/stock/:ticker` —
+  price chart with insider markers, quant/fundamentals panel, insider history
+  table) and the **Insider page** (`/insider/:cik` — cross-company history,
+  roles, totals, ticker links). Both support hard-refresh deep links.
 
 ## Signal logic worth knowing
 - **Cluster buys** = a company where ≥2 distinct insiders (`owner_cik`) made
