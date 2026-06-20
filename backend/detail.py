@@ -11,8 +11,9 @@ def _markers(trades):
     """Buy/sell trades with a real price + date, shaped for chart overlay."""
     out = []
     for t in trades:
-        if t.get("kind") in ("buy", "sell") and (t.get("price") or 0) > 0 \
-                and t.get("period"):
+        if (t.get("kind") in ("buy", "sell")
+                and (t.get("price") or 0) > 0
+                and t.get("period")):
             out.append({
                 "date": t["period"], "kind": t["kind"], "price": t["price"],
                 "owner_name": t.get("owner_name"), "shares": t.get("shares"),
@@ -34,8 +35,10 @@ def stock_detail(ticker, price_period="1y", history_days=90):
     }
 
 
-def insider_detail(owner_cik, history_days=365):
+def insider_detail(owner_cik):
     trades = db.trades_for_owner(owner_cik)
+    # name/roles taken from the most recent filing (roles can change over time;
+    # a proper track record / role history is a Phase 3 concern).
     first = trades[0] if trades else {}
     buys = sum(1 for t in trades if t.get("kind") == "buy")
     sells = sum(1 for t in trades if t.get("kind") == "sell")

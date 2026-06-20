@@ -1,7 +1,8 @@
 def _t(uid, owner, ticker, kind="buy", value=1000.0):
     return {
         "uid": uid, "accession": uid.split(":")[0], "ticker": ticker, "kind": kind,
-        "period": "2026-06-10", "code": "P", "ad": "A", "is_derivative": 0,
+        "period": "2026-06-10", "code": "P" if kind == "buy" else "S",
+        "ad": "A", "is_derivative": 0,
         "owner_cik": owner, "owner_name": "Jane Insider", "roles": "Director",
         "shares": 100, "price": value / 100, "value": value, "shares_after": 100,
         "filed_at": "2026-06-10", "source": "live",

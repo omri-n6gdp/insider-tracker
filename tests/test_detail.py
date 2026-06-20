@@ -29,6 +29,8 @@ def test_stock_detail_assembles_payload(temp_db, monkeypatch):
     assert len(d["trades"]) == 2                       # buy + sell (distinct groups)
     assert len(d["markers"]) == 2                      # both have price>0 + a date
     assert {m["kind"] for m in d["markers"]} == {"buy", "sell"}
+    sell_marker = next(m for m in d["markers"] if m["kind"] == "sell")
+    assert sell_marker["value"] == 10_000              # marker carries trade value
     assert d["summary"]["buys"] == 1 and d["summary"]["sells"] == 1
 
 
@@ -55,6 +57,7 @@ def test_insider_detail_groups_history(temp_db):
     assert d["roles"] == "Director"
     assert len(d["trades"]) == 2
     assert d["summary"]["buys"] == 2
+    assert d["summary"]["net_value"] == 70_000          # 50k + 20k buys, no sells
     assert sorted(d["tickers"]) == ["AAPL", "MSFT"]
 
 
