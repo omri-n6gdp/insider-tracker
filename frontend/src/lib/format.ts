@@ -1,6 +1,7 @@
 export function money(v: number | null | undefined): string {
   if (v == null || !isFinite(v) || v === 0) return "—";
-  return "$" + Math.round(v).toLocaleString("en-US");
+  const sign = v < 0 ? "-" : "";
+  return `${sign}$${Math.round(Math.abs(v)).toLocaleString("en-US")}`;
 }
 
 export function compactMoney(v: number | null | undefined): string {

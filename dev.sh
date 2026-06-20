@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 # Dev mode: Vite dev server (hot reload) + uvicorn, side by side.
+# Run ./run.sh once first — it creates .venv and installs the npm packages.
 set -e
 cd "$(dirname "$0")"
 PORT="${PORT:-8077}"

@@ -1,11 +1,10 @@
 import { useEffect, useRef } from "react";
-import { createChart, ColorType, type IChartApi } from "lightweight-charts";
+import { createChart, ColorType } from "lightweight-charts";
 import type { Candle, Marker } from "../lib/types";
 import { toCandles, toMarkers } from "../lib/chart";
 
 export function PriceChart({ candles, markers }: { candles: Candle[]; markers: Marker[] }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const chartRef = useRef<IChartApi | null>(null);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -16,7 +15,6 @@ export function PriceChart({ candles, markers }: { candles: Candle[]; markers: M
       rightPriceScale: { borderColor: "#1e293b" },
       timeScale: { borderColor: "#1e293b" },
     });
-    chartRef.current = chart;
     const series = chart.addCandlestickSeries({
       upColor: "#34d399", downColor: "#fb7185",
       wickUpColor: "#34d399", wickDownColor: "#fb7185", borderVisible: false,

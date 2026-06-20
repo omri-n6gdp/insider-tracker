@@ -4,10 +4,12 @@ import { money, compactMoney, signedPct, shares } from "./format";
 describe("formatters", () => {
   it("formats money with no decimals", () => {
     expect(money(1234567)).toBe("$1,234,567");
+    expect(money(-1234)).toBe("-$1,234");   // sign before the $
     expect(money(null)).toBe("—");
   });
   it("compacts large money", () => {
     expect(compactMoney(2_500_000)).toBe("$2.5M");
+    expect(compactMoney(-2_500_000)).toBe("-$2.5M");
     expect(compactMoney(3_000_000_000)).toBe("$3.0B");
     expect(compactMoney(0)).toBe("—");
   });

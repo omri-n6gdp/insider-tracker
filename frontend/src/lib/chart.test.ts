@@ -22,4 +22,9 @@ describe("chart transforms", () => {
     expect(m[1]).toMatchObject({ time: "2026-06-11", position: "aboveBar", text: "S" });
     expect(m[0].time <= m[1].time).toBe(true);
   });
+  it("sorts out-of-order markers ascending by time", () => {
+    const reversed = [markers[1], markers[0]];   // sell (later) first
+    const m = toMarkers(reversed);
+    expect(m.map((x) => x.time)).toEqual(["2026-06-10", "2026-06-11"]);
+  });
 });
