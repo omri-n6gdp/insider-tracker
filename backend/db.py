@@ -388,3 +388,17 @@ def get_holdings_cache():
         d["is_us_equity"] = bool(d["is_us_equity"])
         out.append(d)
     return out
+
+
+def trades_for_owner(owner_cik, compiled=True):
+    """All trades by one insider (owner_cik), newest first; compiled by default."""
+    with _lock:
+        c = _connect()
+        rows = [dict(r) for r in c.execute(
+            "SELECT * FROM trades WHERE owner_cik=? ORDER BY filed_at DESC, id DESC",
+            (str(owner_cik),),
+        ).fetchall()]
+    if compiled:
+        rows = aggregate.compile_trades(rows)
+        rows.sort(key=lambda r: (r.get("filed_at") or ""), reverse=True)
+    return rows
