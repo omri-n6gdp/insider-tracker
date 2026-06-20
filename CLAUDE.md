@@ -30,7 +30,9 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
 - **`backend/main.py`** — FastAPI. Background daemon thread does an initial
   4-page backfill (~80s, ~400 filings) then refreshes 1 page every
   `INSIDER_REFRESH_SECONDS` (default 300). Serves `/api/*` then mounts the
-  static `frontend/` at `/`. `STATUS` dict drives the live indicator.
+  built React app from `frontend/dist/` at `/` (503 with a "run ./run.sh"
+  message if not built yet). `STATUS` dict drives the live indicator.
+  `_load_dotenv()` loads `.env` (T212 key) at startup.
 - **`backend/aggregate.py`** — pure `compile_trades(rows)` that collapses
   multiple Form 4 lines into one logical trade (volume-weighted price). Used by
   `db.query_trades(compiled=True)` and exposed via `/api/trades?compiled=`.
@@ -40,11 +42,20 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
 - **`backend/holdings.py`** — read-only Trading 212 portfolio via
   `TRADING212_API_KEY` (from `.env`), cached in `holdings_cache`. US-equity
   positions get an insider summary + sell-alert. Endpoint: `/api/holdings`.
-- **Tests:** `pytest` from the project root (`./.venv/bin/python -m pytest`).
-- **`frontend/`** — vanilla HTML/CSS/JS dashboard. Dark editorial-terminal
-  aesthetic: Fraunces serif masthead, IBM Plex Mono numbers, mint buys / coral
-  sells / gold cluster signal. Polls `/api/status` every 15s and reloads when
-  the backend's row count changes.
+- **`backend/detail.py`** — `stock_detail(ticker)` / `insider_detail(cik)`
+  assemblers (pure composition of `db` + `market`). Endpoints `/api/stock/{ticker}`
+  (quant + price candles + insider markers + compiled history + net summary) and
+  `/api/insider/{cik}` (cross-company history + roles + totals).
+- **Tests:** backend `./.venv/bin/python -m pytest`; frontend `cd frontend &&
+  npx vitest run`.
+- **`frontend/`** — React + Vite + TypeScript SPA (Tailwind, TanStack Query,
+  React Router, TradingView lightweight-charts). Source in `frontend/src/`
+  (`lib/` = api client/types/formatters/chart transforms; `components/`;
+  `pages/`), builds to `frontend/dist/`. `run.sh` runs `npm run build`; `dev.sh`
+  runs vite + uvicorn with hot reload. Dark editorial-terminal aesthetic
+  (Fraunces masthead, mono numbers, mint buys / coral sells / gold clusters).
+  Phase 2A shipped the **Board** (compiled-trade ledger + stat strip + cluster
+  sidebar + filters); the Stock and Insider pages are Phase 2B stubs.
 
 ## Signal logic worth knowing
 - **Cluster buys** = a company where ≥2 distinct insiders (`owner_cik`) made
