@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, Query
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
 from . import db, sec, market, holdings, detail
@@ -183,10 +183,25 @@ def api_refresh(pages: int = 1):
     return {"ok": True, "message": "Refresh started."}
 
 
-# Static dashboard — mounted last so /api/* routes win.
+def resolve_static_path(dist_dir, full_path):
+    """Map a request path to a file under dist_dir. Returns a real file when it
+    exists and is safely inside dist_dir, otherwise index.html (SPA fallback)."""
+    index = os.path.join(dist_dir, "index.html")
+    if not full_path:
+        return index
+    candidate = os.path.normpath(os.path.join(dist_dir, full_path))
+    root = os.path.normpath(dist_dir)
+    if candidate.startswith(root + os.sep) and os.path.isfile(candidate):
+        return candidate
+    return index
+
+
+# Static dashboard — catch-all registered last so /api/* routes win.
 DIST_DIR = os.path.join(FRONTEND_DIR, "dist")
 if os.path.isdir(DIST_DIR):
-    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
+    @app.get("/{full_path:path}")
+    def spa(full_path: str):
+        return FileResponse(resolve_static_path(DIST_DIR, full_path))
 else:
     @app.get("/")
     def _needs_build():
