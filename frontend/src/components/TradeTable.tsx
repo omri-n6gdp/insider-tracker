@@ -59,7 +59,7 @@ export function TradeTable({ trades, context }: Props) {
       >
         {headers.map((h, i) => (
           <div
-            key={i}
+            key={h || i}
             className={`font-mono text-[9px] text-text-faint uppercase tracking-widest ${
               // right-align numeric cols
               i >= (context === "stock" ? 3 : 4) ? "text-right" : ""

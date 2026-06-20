@@ -46,9 +46,24 @@ export interface Marker {
   date: string; kind: "buy" | "sell"; price: number;
   owner_name: string; shares: number | null; value: number | null;
 }
+export interface Fundamentals {
+  ticker: string;
+  available: boolean;
+  name?: string | null;
+  sector?: string | null;
+  industry?: string | null;
+  market_cap?: number | null;
+  pe?: number | null;
+  pb?: number | null;
+  dividend_yield?: number | null;
+  week52_low?: number | null;
+  week52_high?: number | null;
+  currency?: string | null;
+  fetched_at?: number | null;
+}
 export interface StockDetail {
   ticker: string;
-  fundamentals: Record<string, unknown> & { available: boolean };
+  fundamentals: Fundamentals;
   prices: { ticker: string; available: boolean; candles: Candle[] };
   trades: Trade[];
   markers: Marker[];

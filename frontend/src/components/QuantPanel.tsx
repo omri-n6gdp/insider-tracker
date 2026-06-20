@@ -3,7 +3,7 @@ import { compactMoney } from "../lib/format";
 
 type Fundamentals = StockDetail["fundamentals"];
 
-function fmt(v: unknown, type: "money" | "ratio" | "pct" | "range", low?: unknown): string {
+function fmt(v: unknown, type: "money" | "ratio" | "pct" | "range", high?: unknown): string {
   if (v == null || v === "" || v === false) return "—";
   if (type === "money") return compactMoney(v as number);
   if (type === "ratio") {
@@ -11,14 +11,15 @@ function fmt(v: unknown, type: "money" | "ratio" | "pct" | "range", low?: unknow
     return isFinite(n) ? n.toFixed(2) : "—";
   }
   if (type === "pct") {
+    // yfinance returns dividendYield already as a percent (e.g. 2.67 = 2.67%).
     const n = Number(v);
     if (!isFinite(n) || n === 0) return "—";
-    return (n * 100).toFixed(2) + "%";
+    return n.toFixed(2) + "%";
   }
   if (type === "range") {
     const lo = Number(v);
-    const hi = Number(low);
-    if (!isFinite(lo) || !isFinite(hi)) return "—";
+    const hi = Number(high);
+    if (!isFinite(lo) || !isFinite(hi) || (lo === 0 && hi === 0)) return "—";
     return `$${lo.toFixed(2)} – $${hi.toFixed(2)}`;
   }
   return String(v);
@@ -28,11 +29,11 @@ const ITEMS: {
   label: string;
   render: (f: Fundamentals) => string;
 }[] = [
-  { label: "Sector", render: (f) => (f.sector as string | null) ?? "—" },
-  { label: "Industry", render: (f) => (f.industry as string | null) ?? "—" },
+  { label: "Sector", render: (f) => f.sector ?? "—" },
+  { label: "Industry", render: (f) => f.industry ?? "—" },
   { label: "Market Cap", render: (f) => fmt(f.market_cap, "money") },
-  { label: "P/E", render: (f) => fmt(f.pe_ratio, "ratio") },
-  { label: "P/B", render: (f) => fmt(f.pb_ratio, "ratio") },
+  { label: "P/E", render: (f) => fmt(f.pe, "ratio") },
+  { label: "P/B", render: (f) => fmt(f.pb, "ratio") },
   {
     label: "Div Yield",
     render: (f) => fmt(f.dividend_yield, "pct"),
