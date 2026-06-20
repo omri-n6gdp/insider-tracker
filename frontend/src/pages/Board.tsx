@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { api } from "../lib/api";
-import { useSearchParam } from "../lib/useSearchParam";
 import { StatStrip } from "../components/StatStrip";
 import { ClusterPanel } from "../components/ClusterPanel";
 import { TradeRow } from "../components/TradeRow";
@@ -16,7 +15,6 @@ const KIND_FILTERS = [
 ] as const;
 
 export default function Board() {
-  const design = (useSearchParam("design") ?? "a") as "a" | "b";
   const [kind, setKind] = useState<string>("");
   const [search, setSearch] = useState("");
 
@@ -46,61 +44,13 @@ export default function Board() {
     queryFn: () => api.trades(tradeParams),
   });
 
-  if (design === "b") {
-    return (
-      <BoardB
-        design={design}
-        kind={kind}
-        setKind={setKind}
-        search={search}
-        setSearch={setSearch}
-        stats={statsData}
-        statsLoading={statsLoading}
-        clusters={clustersData?.clusters ?? []}
-        clustersLoading={clustersLoading}
-        trades={tradesData?.trades ?? []}
-        tradesLoading={tradesLoading}
-      />
-    );
-  }
+  const trades: Trade[] = tradesData?.trades ?? [];
+  const clusters: Cluster[] = clustersData?.clusters ?? [];
 
-  return (
-    <BoardA
-      design={design}
-      kind={kind}
-      setKind={setKind}
-      search={search}
-      setSearch={setSearch}
-      stats={statsData}
-      statsLoading={statsLoading}
-      clusters={clustersData?.clusters ?? []}
-      clustersLoading={clustersLoading}
-      trades={tradesData?.trades ?? []}
-      tradesLoading={tradesLoading}
-    />
-  );
-}
-
-interface BoardProps {
-  design: "a" | "b";
-  kind: string;
-  setKind: (k: string) => void;
-  search: string;
-  setSearch: (s: string) => void;
-  stats: Stats | undefined;
-  statsLoading: boolean;
-  clusters: Cluster[];
-  clustersLoading: boolean;
-  trades: Trade[];
-  tradesLoading: boolean;
-}
-
-/* ── Design A: Terminal Ledger ─────────────────────────────────────── */
-function BoardA({ design, kind, setKind, search, setSearch, stats, statsLoading, clusters, clustersLoading, trades, tradesLoading }: BoardProps) {
   return (
     <div className="flex flex-col h-[calc(100vh-96px)]">
       {/* Stat strip */}
-      <StatStrip stats={stats} loading={statsLoading} design={design} />
+      <StatStrip stats={statsData as Stats | undefined} loading={statsLoading} />
 
       {/* Body: ledger + cluster panel */}
       <div className="flex flex-1 min-h-0 overflow-hidden">
@@ -108,14 +58,14 @@ function BoardA({ design, kind, setKind, search, setSearch, stats, statsLoading,
         {/* Main ledger */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Toolbar */}
-          <div className="flex items-center gap-0 px-4 py-2 border-b border-border bg-surface-1 shrink-0">
+          <div className="flex items-center gap-0 px-4 py-1.5 border-b border-border bg-surface-1 shrink-0">
             {/* Kind filter */}
             <div className="flex gap-0 border border-border rounded overflow-hidden mr-3">
               {KIND_FILTERS.map((f) => (
                 <button
                   key={f.value}
                   onClick={() => setKind(f.value)}
-                  className={`font-mono text-[10px] tracking-wider uppercase px-3 py-1.5 transition-colors border-r border-border last:border-r-0 ${
+                  className={`font-mono text-[10px] tracking-wider uppercase px-3 py-1 transition-colors border-r border-border last:border-r-0 ${
                     kind === f.value
                       ? "bg-surface-3 text-text-primary"
                       : "bg-surface-1 text-text-muted hover:text-text-secondary hover:bg-surface-2"
@@ -127,7 +77,7 @@ function BoardA({ design, kind, setKind, search, setSearch, stats, statsLoading,
             </div>
 
             {/* Search */}
-            <div className="flex items-center gap-2 border border-border rounded bg-surface px-3 py-1.5 flex-1 max-w-xs">
+            <div className="flex items-center gap-2 border border-border rounded bg-surface px-2.5 py-1 flex-1 max-w-xs">
               <svg className="w-3 h-3 text-text-muted shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
@@ -146,27 +96,38 @@ function BoardA({ design, kind, setKind, search, setSearch, stats, statsLoading,
             </div>
           </div>
 
-          {/* Column headers */}
-          <div className="flex items-center gap-3 px-5 py-1.5 border-b border-border-muted bg-surface-1 shrink-0">
-            <div className="w-14 font-mono text-[9px] text-text-faint uppercase tracking-widest">Kind</div>
-            <div className="w-16 font-mono text-[9px] text-text-faint uppercase tracking-widest">Ticker</div>
-            <div className="flex-1 hidden sm:block font-mono text-[9px] text-text-faint uppercase tracking-widest">Company</div>
-            <div className="w-40 hidden md:block font-mono text-[9px] text-text-faint uppercase tracking-widest">Insider</div>
-            <div className="w-20 font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Value</div>
-            <div className="w-24 hidden lg:block font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Shares</div>
-            <div className="w-20 font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Date</div>
+          {/* Column headers — tight grid matching TradeRow */}
+          <div
+            className="px-3 py-1 border-b border-border-muted bg-surface-1 shrink-0"
+            style={{ display: "grid", gridTemplateColumns: "52px 60px 24px 180px 120px 90px 80px 72px" }}
+          >
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Kind</div>
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Ticker</div>
+            <div />
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Company</div>
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Insider</div>
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Value</div>
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Shares</div>
+            <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Date</div>
           </div>
 
           {/* Ledger rows */}
           <div className="overflow-y-auto flex-1 stagger">
             {tradesLoading
-              ? Array(12).fill(0).map((_, i) => (
-                  <div key={i} className="flex items-center gap-3 px-5 py-2.5 border-b border-border-muted animate-pulse">
-                    <div className="w-14 h-4 bg-surface-3 rounded" />
-                    <div className="w-16 h-4 bg-surface-3 rounded" />
-                    <div className="flex-1 h-3 bg-surface-3 rounded hidden sm:block" />
-                    <div className="w-20 h-4 bg-surface-3 rounded" />
-                    <div className="w-20 h-4 bg-surface-3 rounded" />
+              ? Array(18).fill(0).map((_, i) => (
+                  <div
+                    key={i}
+                    className="px-3 py-1.5 border-b border-border-muted animate-pulse"
+                    style={{ display: "grid", gridTemplateColumns: "52px 60px 24px 180px 120px 90px 80px 72px", alignItems: "center" }}
+                  >
+                    <div className="h-4 w-10 bg-surface-3 rounded" />
+                    <div className="h-4 w-12 bg-surface-3 rounded" />
+                    <div />
+                    <div className="h-3 w-32 bg-surface-3 rounded" />
+                    <div className="h-3 w-24 bg-surface-3 rounded" />
+                    <div className="h-4 w-16 bg-surface-3 rounded ml-auto" />
+                    <div className="h-3 w-14 bg-surface-3 rounded ml-auto" />
+                    <div className="h-3 w-12 bg-surface-3 rounded ml-auto" />
                   </div>
                 ))
               : trades.map((trade) => (
@@ -181,109 +142,8 @@ function BoardA({ design, kind, setKind, search, setSearch, stats, statsLoading,
         </div>
 
         {/* Cluster panel — sidebar */}
-        <div className="w-72 shrink-0 border-l border-border overflow-y-auto">
-          <ClusterPanel clusters={clusters} loading={clustersLoading} design={design} />
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ── Design B: Dark Editorial ──────────────────────────────────────── */
-function BoardB({ design, kind, setKind, search, setSearch, stats, statsLoading, clusters, clustersLoading, trades, tradesLoading }: BoardProps) {
-  return (
-    <div>
-      {/* Stat strip */}
-      <StatStrip stats={stats} loading={statsLoading} design={design} />
-
-      {/* Body */}
-      <div className="max-w-[1440px] mx-auto px-10 py-8">
-        {/* Two-column layout */}
-        <div className="grid grid-cols-[1fr_300px] gap-12">
-          {/* Left: Ledger */}
-          <div>
-            {/* Section title + toolbar */}
-            <div className="flex items-end gap-6 mb-6">
-              <div className="flex items-center gap-4">
-                <div className="w-4 h-px bg-text-muted" />
-                <h2 className="font-sans-refined text-[11px] font-medium uppercase tracking-[0.15em] text-text-muted">
-                  Trade Ledger
-                </h2>
-              </div>
-              <div className="flex-1" />
-
-              {/* Kind filter */}
-              <div className="flex gap-3">
-                {KIND_FILTERS.map((f) => (
-                  <button
-                    key={f.value}
-                    onClick={() => setKind(f.value)}
-                    className={`font-sans-refined text-[11px] font-medium tracking-wide transition-colors pb-0.5 ${
-                      kind === f.value
-                        ? "text-text-primary border-b border-text-primary"
-                        : "text-text-muted hover:text-text-secondary"
-                    }`}
-                  >
-                    {f.label}
-                  </button>
-                ))}
-              </div>
-
-              {/* Search */}
-              <div className="flex items-center gap-2 border-b border-[#1e2836] pb-0.5 focus-within:border-text-muted transition-colors">
-                <svg className="w-3 h-3 text-text-faint shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <input
-                  type="text"
-                  placeholder="Search…"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  className="bg-transparent font-mono text-[11px] text-text-primary placeholder-text-faint outline-none w-32"
-                />
-              </div>
-            </div>
-
-            {/* Column headers */}
-            <div className="flex items-center gap-6 pb-2 border-b border-[#1a1f28] mb-0">
-              <div className="w-0.5 shrink-0" />
-              <div className="w-44 min-w-0 font-mono text-[9px] text-text-faint uppercase tracking-widest">Ticker / Co.</div>
-              <div className="flex-1 hidden md:block font-mono text-[9px] text-text-faint uppercase tracking-widest">Insider</div>
-              <div className="w-20 hidden sm:block font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Kind</div>
-              <div className="w-24 font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Value</div>
-              <div className="w-24 hidden lg:block font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Shares</div>
-              <div className="w-20 font-mono text-[9px] text-text-faint uppercase tracking-widest text-right">Date</div>
-            </div>
-
-            {/* Rows */}
-            <div className="stagger">
-              {tradesLoading
-                ? Array(15).fill(0).map((_, i) => (
-                    <div key={i} className="flex items-center gap-6 py-3.5 border-b border-[#111318] animate-pulse">
-                      <div className="w-0.5 h-8 bg-surface-2 shrink-0" />
-                      <div className="w-44 space-y-1">
-                        <div className="h-3.5 w-14 bg-surface-2 rounded" />
-                        <div className="h-2.5 w-28 bg-surface-2 rounded" />
-                      </div>
-                      <div className="flex-1 h-3 bg-surface-2 rounded hidden md:block" />
-                      <div className="w-24 h-3.5 bg-surface-2 rounded" />
-                    </div>
-                  ))
-                : trades.map((trade) => (
-                    <TradeRow key={trade.uid} trade={trade} />
-                  ))}
-              {!tradesLoading && trades.length === 0 && (
-                <div className="flex items-center justify-center h-32 font-sans-refined text-sm text-text-muted">
-                  No trades match your filters
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Right: Cluster panel */}
-          <div className="pt-0">
-            <ClusterPanel clusters={clusters} loading={clustersLoading} design={design} />
-          </div>
+        <div className="w-64 shrink-0 border-l border-border overflow-y-auto">
+          <ClusterPanel clusters={clusters} loading={clustersLoading} />
         </div>
       </div>
     </div>
