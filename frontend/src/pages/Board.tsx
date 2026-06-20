@@ -99,7 +99,7 @@ export default function Board() {
           {/* Column headers — tight grid matching TradeRow */}
           <div
             className="px-3 py-1 border-b border-border-muted bg-surface-1 shrink-0"
-            style={{ display: "grid", gridTemplateColumns: "52px 60px 24px 180px 120px 90px 80px 72px" }}
+            style={{ display: "grid", gridTemplateColumns: "52px 64px 24px minmax(0,1fr) minmax(0,1.1fr) 110px 96px 64px" }}
           >
             <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Kind</div>
             <div className="font-mono text-[9px] text-text-faint uppercase tracking-widest">Ticker</div>
@@ -117,8 +117,8 @@ export default function Board() {
               ? Array(18).fill(0).map((_, i) => (
                   <div
                     key={i}
-                    className="px-3 py-1.5 border-b border-border-muted animate-pulse"
-                    style={{ display: "grid", gridTemplateColumns: "52px 60px 24px 180px 120px 90px 80px 72px", alignItems: "center" }}
+                    className="px-3 py-1 border-b border-border-muted animate-pulse"
+                    style={{ display: "grid", gridTemplateColumns: "52px 64px 24px minmax(0,1fr) minmax(0,1.1fr) 110px 96px 64px", alignItems: "center" }}
                   >
                     <div className="h-4 w-10 bg-surface-3 rounded" />
                     <div className="h-4 w-12 bg-surface-3 rounded" />

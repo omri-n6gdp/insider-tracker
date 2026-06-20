@@ -22,8 +22,8 @@ export function TradeRow({ trade }: Props) {
 
   return (
     <div
-      className="px-3 py-1.5 border-b border-border-muted hover:bg-surface-2 transition-colors group"
-      style={{ display: "grid", gridTemplateColumns: "52px 60px 24px 180px 120px 90px 80px 72px", alignItems: "center", gap: 0 }}
+      className="px-3 py-1 border-b border-border-muted hover:bg-surface-2 transition-colors group"
+      style={{ display: "grid", gridTemplateColumns: "52px 64px 24px minmax(0,1fr) minmax(0,1.1fr) 110px 96px 64px", alignItems: "center", gap: 0 }}
     >
       {/* Kind badge */}
       <div className="shrink-0">
