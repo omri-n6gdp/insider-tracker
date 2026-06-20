@@ -16,10 +16,20 @@ if [ ! -d ".venv" ]; then
   echo "Setup done."
 fi
 
-# 2. Open the dashboard in the browser a moment after the server starts.
+# 2. Build the React frontend (first run installs deps; needs Node, already present).
+if [ -f frontend/package.json ]; then
+  if ! command -v npm >/dev/null 2>&1; then
+    echo "Node.js/npm not found. Install it once with:  brew install node"
+    exit 1
+  fi
+  echo "Building the dashboard (first run installs packages, ~30s)…"
+  ( cd frontend && { [ -d node_modules ] || npm install; } && npm run build )
+fi
+
+# 3. Open the dashboard in the browser a moment after the server starts.
 ( sleep 2; (open "http://localhost:${PORT}" 2>/dev/null || true) ) &
 
-# 3. Start the server (this stays running — press Ctrl+C to stop).
+# 4. Start the server (this stays running — press Ctrl+C to stop).
 echo ""
 echo "  Insider Trading Tracker is starting…"
 echo "  Open this in your browser:  http://localhost:${PORT}"

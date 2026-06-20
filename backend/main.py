@@ -184,4 +184,13 @@ def api_refresh(pages: int = 1):
 
 
 # Static dashboard — mounted last so /api/* routes win.
-app.mount("/", StaticFiles(directory=FRONTEND_DIR, html=True), name="frontend")
+DIST_DIR = os.path.join(FRONTEND_DIR, "dist")
+if os.path.isdir(DIST_DIR):
+    app.mount("/", StaticFiles(directory=DIST_DIR, html=True), name="frontend")
+else:
+    @app.get("/")
+    def _needs_build():
+        return JSONResponse(
+            {"message": "Frontend not built yet. Run ./run.sh (it builds the app)."},
+            status_code=503,
+        )
