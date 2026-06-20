@@ -15,7 +15,7 @@ from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from fastapi.staticfiles import StaticFiles
 
-from . import db, sec, market, holdings
+from . import db, sec, market, holdings, detail
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -163,6 +163,16 @@ def api_quote(ticker: str):
 @app.get("/api/holdings")
 def api_holdings(days: int = 30):
     return holdings.get_holdings(insider_days=days)
+
+
+@app.get("/api/stock/{ticker}")
+def api_stock(ticker: str, period: str = "1y"):
+    return detail.stock_detail(ticker, price_period=period)
+
+
+@app.get("/api/insider/{cik}")
+def api_insider(cik: str):
+    return detail.insider_detail(cik)
 
 
 @app.post("/api/refresh")
