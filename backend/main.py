@@ -6,15 +6,18 @@ refreshes from SEC every few minutes so the board keeps filling while you're
 away.
 """
 import os
+import csv
+import io
+import subprocess
 import threading
 import time
 from datetime import datetime, timezone
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Response
 from fastapi.responses import FileResponse, JSONResponse
 
-from . import db, sec, market, holdings, detail, track_record, score, strategy, backfill
+from . import db, sec, market, holdings, detail, track_record, score, strategy, backfill, digest
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -115,12 +118,39 @@ def _advance_scoreboards():
         STATUS["scoreboard_error"] = str(ex)
 
 
+def _notify_mac(title, message):
+    try:
+        subprocess.run(["osascript", "-e",
+                        f'display notification {message!r} with title {title!r}'],
+                       check=False, timeout=5)
+    except Exception:
+        pass
+
+
+def _maybe_daily_digest():
+    import datetime as _d
+    today = _d.date.today().isoformat()
+    if db.get_meta("digest_date") == today:
+        return
+    try:
+        d = digest.build(db, holdings)
+        n_clusters = len(d.get("clusters", []))
+        n_alerts = len(d.get("holdings_alerts", []))
+        if n_clusters or n_alerts:
+            _notify_mac("Insider Ledger",
+                        f"{n_clusters} cluster buys · {n_alerts} holdings sell-alerts today")
+        db.set_meta("digest_date", today)
+    except Exception as ex:
+        STATUS["digest_error"] = str(ex)
+
+
 def _worker():
     do_refresh(pages=INITIAL_PAGES)
     _recompute_ratings()
     while not _stop.wait(REFRESH_SECONDS):
         do_refresh(pages=1)
         _advance_scoreboards()
+        _maybe_daily_digest()
 
 
 @asynccontextmanager
@@ -293,6 +323,50 @@ def api_backfill_status():
     return {"running": STATUS.get("backfill_running", False),
             "last": STATUS.get("backfill_last"),
             "cursor": db.get_meta("backfill_cursor")}
+
+
+@app.get("/api/sectors")
+def api_sectors(days: int = 30):
+    return {"sectors": db.sector_flow(days=days)}
+
+
+@app.get("/api/watchlist")
+def api_watchlist():
+    return {"watchlist": db.list_watch(),
+            "activity": db.watchlist_activity()}
+
+
+@app.post("/api/watchlist")
+def api_add_watch(payload: dict):
+    db.add_watch(payload.get("kind"), payload.get("key"))
+    return {"ok": True}
+
+
+@app.delete("/api/watchlist")
+def api_remove_watch(kind: str, key: str):
+    db.remove_watch(kind, key)
+    return {"ok": True}
+
+
+@app.get("/api/digest")
+def api_digest():
+    return digest.build(db, holdings)
+
+
+@app.get("/api/export.csv")
+def api_export_csv(kind: str = "all", days: int | None = None,
+                   min_value: float = 0, q: str | None = None):
+    rows = db.query_trades(kind=kind, days=days, min_value=min_value, q=q,
+                           compiled=True, limit=5000)
+    cols = ["filed_at", "period", "ticker", "issuer_name", "owner_name",
+            "roles", "kind", "shares", "price", "value", "line_count"]
+    buf = io.StringIO()
+    w = csv.writer(buf)
+    w.writerow(cols)
+    for r in rows:
+        w.writerow([r.get(c) for c in cols])
+    return Response(content=buf.getvalue(), media_type="text/csv",
+                    headers={"Content-Disposition": "attachment; filename=insider-ledger.csv"})
 
 
 def resolve_static_path(dist_dir, full_path):
