@@ -1,7 +1,23 @@
-import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail, Recommendation, InsiderTrack } from "./types";
+import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail, Recommendation, InsiderTrack, StrategyRule, BacktestResult, Strategy, Scoreboard } from "./types";
 
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(path);
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+async function postJSON<T>(path: string, body?: unknown): Promise<T> {
+  const res = await fetch(path, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!res.ok) throw new Error(`${path} -> ${res.status}`);
+  return res.json() as Promise<T>;
+}
+
+async function deleteJSON<T>(path: string): Promise<T> {
+  const res = await fetch(path, { method: "DELETE" });
   if (!res.ok) throw new Error(`${path} -> ${res.status}`);
   return res.json() as Promise<T>;
 }
@@ -24,4 +40,24 @@ export const api = {
     getJSON<{ recommendations: Recommendation[] }>(`/api/recommendations?days=${days}&limit=${limit}`),
   smartMoney: (limit = 25, minBuys = 2) =>
     getJSON<{ insiders: InsiderTrack[] }>(`/api/smart-money?limit=${limit}&min_buys=${minBuys}`),
+  // Strategy Lab
+  strategies: () => getJSON<{ strategies: Strategy[] }>("/api/strategies"),
+  createStrategy: (name: string, rule: StrategyRule) =>
+    postJSON<{ id: number; strategy: Strategy }>("/api/strategies", { name, rule }),
+  deleteStrategy: (id: number) =>
+    deleteJSON<{ ok: boolean }>(`/api/strategies/${id}`),
+  setStrategyActive: (id: number, active: boolean) =>
+    postJSON<{ ok: boolean; strategy: Strategy }>(`/api/strategies/${id}/active`, { active }),
+  scoreboard: (id: number) =>
+    getJSON<Scoreboard>(`/api/strategies/${id}/scoreboard`),
+  backtest: (rule: StrategyRule, days?: number) =>
+    postJSON<BacktestResult>("/api/backtest", { rule, ...(days !== undefined ? { days } : {}) }),
+  backfill: (maxDays?: number) =>
+    postJSON<{ ok: boolean; message: string }>(
+      `/api/backfill${maxDays !== undefined ? `?max_days=${maxDays}` : ""}`
+    ),
+  backfillStatus: () =>
+    getJSON<{ running: boolean; last: Record<string, unknown> | null; cursor: string | null }>(
+      "/api/backfill/status"
+    ),
 };

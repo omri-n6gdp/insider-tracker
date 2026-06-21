@@ -96,3 +96,57 @@ export interface InsiderDetail {
              sell_value: number; net_value: number };
   track?: InsiderTrack | null;
 }
+
+export interface StrategyRule {
+  name?: string;
+  min_value?: number;
+  roles?: string;
+  min_cluster_owners?: number;
+  hold_days?: number;
+  days?: number;
+}
+
+export interface EquityPoint {
+  date: string;
+  value: number;
+}
+
+export interface BacktestResult {
+  n_trades: number;
+  win_rate: number;
+  avg_return: number;
+  avg_market_adjusted: number;
+  total_return: number;
+  benchmark_total_return: number;
+  equity: EquityPoint[];
+  benchmark: EquityPoint[];
+  signals: number;
+}
+
+export interface Strategy {
+  id: number;
+  name: string;
+  rule: StrategyRule;
+  active: number;
+  activated_at: string | null;
+}
+
+export interface Scoreboard {
+  strategy: Strategy | null;
+  positions: Array<{
+    id: number;
+    strategy_id: number;
+    ticker: string;
+    opened_at: string;
+    entry_price: number;
+    shares: number;
+    exit_at: string | null;
+    exit_price: number | null;
+    status: "open" | "closed";
+    pnl: number | null;
+  }>;
+  open: number;
+  closed: number;
+  realized_pnl: number;
+  win_rate: number | null;
+}
