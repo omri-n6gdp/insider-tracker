@@ -71,6 +71,21 @@ export interface StockDetail {
              net_value: number; sell_alert: boolean };
 }
 
+export interface InsiderTrack {
+  owner_cik: string; owner_name: string | null; n_buys: number;
+  avg_ret_1m: number | null; avg_ret_3m: number | null; avg_ret_6m: number | null;
+  win_rate: number | null; rating: number; sample_ok: number;
+}
+
+export interface Recommendation {
+  ticker: string; issuer_name: string | null; owners: number;
+  buy_value: number; market_cap: number | null; pe: number | null;
+  score: number;
+  subscores: { cluster: number; seniority: number; size: number;
+               track: number; valuation: number };
+  trades: Trade[];
+}
+
 export interface InsiderDetail {
   owner_cik: string;
   owner_name: string | null;
@@ -79,4 +94,5 @@ export interface InsiderDetail {
   trades: Trade[];
   summary: { buys: number; sells: number; buy_value: number;
              sell_value: number; net_value: number };
+  track?: InsiderTrack | null;
 }

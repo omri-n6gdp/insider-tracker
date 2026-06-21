@@ -1,4 +1,4 @@
-import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail } from "./types";
+import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail, Recommendation, InsiderTrack } from "./types";
 
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -20,4 +20,8 @@ export const api = {
     getJSON<StockDetail>(`/api/stock/${encodeURIComponent(ticker)}?period=${period}`),
   insider: (cik: string) =>
     getJSON<InsiderDetail>(`/api/insider/${encodeURIComponent(cik)}`),
+  recommendations: (days = 30, limit = 20) =>
+    getJSON<{ recommendations: Recommendation[] }>(`/api/recommendations?days=${days}&limit=${limit}`),
+  smartMoney: (limit = 25, minBuys = 2) =>
+    getJSON<{ insiders: InsiderTrack[] }>(`/api/smart-money?limit=${limit}&min_buys=${minBuys}`),
 };
