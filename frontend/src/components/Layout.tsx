@@ -18,6 +18,7 @@ export function Layout({ children }: { children: ReactNode }) {
     { label: "Board", to: "/" },
     { label: "Top Buys", to: "/top-buys" },
     { label: "Smart Money", to: "/smart-money" },
+    { label: "Strategy", to: "/strategy" },
   ] as const;
 
   function isActive(to: string) {
