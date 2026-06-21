@@ -75,6 +75,15 @@ CREATE TABLE IF NOT EXISTS insider_track (
     avg_ret_1m REAL, avg_ret_3m REAL, avg_ret_6m REAL, win_rate REAL,
     rating REAL, sample_ok INTEGER, computed_at REAL
 );
+CREATE TABLE IF NOT EXISTS strategies (
+    id INTEGER PRIMARY KEY, name TEXT, rule_json TEXT, active INTEGER DEFAULT 1,
+    created_at REAL, activated_at TEXT
+);
+CREATE TABLE IF NOT EXISTS strategy_positions (
+    id INTEGER PRIMARY KEY, strategy_id INTEGER, ticker TEXT, opened_at TEXT,
+    entry_price REAL, shares REAL, exit_at TEXT, exit_price REAL,
+    status TEXT DEFAULT 'open', pnl REAL
+);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -460,3 +469,93 @@ def buys_for_owner(owner_cik):
             "SELECT * FROM trades WHERE owner_cik=? AND kind='buy' "
             "ORDER BY filed_at", (str(owner_cik),)).fetchall()]
     return aggregate.compile_trades(rows)
+
+
+# ---------------------------------------------------------------- strategies
+def create_strategy(name, rule):
+    now = time.time()
+    with _lock:
+        c = _connect()
+        cur = c.execute(
+            "INSERT INTO strategies(name,rule_json,active,created_at,activated_at) "
+            "VALUES(?,?,1,?,?)",
+            (name, json.dumps(rule), now, _dt_now_iso()))
+        c.commit()
+        return cur.lastrowid
+
+
+def _dt_now_iso():
+    import datetime as _d
+    return _d.datetime.now(_d.timezone.utc).isoformat()
+
+
+def _row_strategy(r):
+    d = dict(r)
+    try:
+        d["rule"] = json.loads(d.pop("rule_json") or "{}")
+    except Exception:
+        d["rule"] = {}
+    return d
+
+
+def get_strategy(sid):
+    with _lock:
+        c = _connect()
+        r = c.execute("SELECT * FROM strategies WHERE id=?", (int(sid),)).fetchone()
+    return _row_strategy(r) if r else None
+
+
+def list_strategies():
+    with _lock:
+        c = _connect()
+        rows = c.execute("SELECT * FROM strategies ORDER BY created_at DESC").fetchall()
+    return [_row_strategy(r) for r in rows]
+
+
+def set_strategy_active(sid, active):
+    with _lock:
+        c = _connect()
+        c.execute("UPDATE strategies SET active=? WHERE id=?",
+                  (1 if active else 0, int(sid)))
+        c.commit()
+
+
+def delete_strategy(sid):
+    with _lock:
+        c = _connect()
+        c.execute("DELETE FROM strategy_positions WHERE strategy_id=?", (int(sid),))
+        c.execute("DELETE FROM strategies WHERE id=?", (int(sid),))
+        c.commit()
+
+
+def add_position(sid, pos):
+    with _lock:
+        c = _connect()
+        c.execute(
+            "INSERT INTO strategy_positions"
+            "(strategy_id,ticker,opened_at,entry_price,shares,status) "
+            "VALUES(?,?,?,?,?,?)",
+            (int(sid), pos["ticker"], pos["opened_at"], pos["entry_price"],
+             pos.get("shares", 0), pos.get("status", "open")))
+        c.commit()
+
+
+def positions_for_strategy(sid):
+    with _lock:
+        c = _connect()
+        rows = c.execute("SELECT * FROM strategy_positions WHERE strategy_id=? "
+                         "ORDER BY opened_at", (int(sid),)).fetchall()
+    return [dict(r) for r in rows]
+
+
+def open_positions(sid):
+    return [p for p in positions_for_strategy(sid) if p["status"] == "open"]
+
+
+def close_position(pid, exit_at, exit_price, pnl):
+    with _lock:
+        c = _connect()
+        c.execute("UPDATE strategy_positions SET exit_at=?,exit_price=?,pnl=?,"
+                  "status='closed' WHERE id=?",
+                  (exit_at, exit_price, pnl, int(pid)))
+        c.commit()
