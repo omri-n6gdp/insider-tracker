@@ -70,6 +70,11 @@ CREATE TABLE IF NOT EXISTS holdings_cache (
     ticker TEXT, raw_ticker TEXT PRIMARY KEY, qty REAL, avg_price REAL,
     current_price REAL, is_us_equity INTEGER, fetched_at REAL
 );
+CREATE TABLE IF NOT EXISTS insider_track (
+    owner_cik TEXT PRIMARY KEY, owner_name TEXT, n_buys INTEGER,
+    avg_ret_1m REAL, avg_ret_3m REAL, avg_ret_6m REAL, win_rate REAL,
+    rating REAL, sample_ok INTEGER, computed_at REAL
+);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -402,3 +407,56 @@ def trades_for_owner(owner_cik, compiled=True):
         rows = aggregate.compile_trades(rows)
         rows.sort(key=lambda r: (r.get("filed_at") or ""), reverse=True)
     return rows
+
+
+# ---------------------------------------------------------------- insider_track
+_TRACK_COLS = ["owner_cik", "owner_name", "n_buys", "avg_ret_1m", "avg_ret_3m",
+               "avg_ret_6m", "win_rate", "rating", "sample_ok", "computed_at"]
+
+
+def save_insider_track(rec):
+    rec = {**rec, "computed_at": rec.get("computed_at") or time.time()}
+    with _lock:
+        c = _connect()
+        c.execute(
+            "INSERT OR REPLACE INTO insider_track "
+            f"({','.join(_TRACK_COLS)}) VALUES ({','.join('?' for _ in _TRACK_COLS)})",
+            [rec.get(k) for k in _TRACK_COLS],
+        )
+        c.commit()
+
+
+def get_insider_track(owner_cik):
+    with _lock:
+        c = _connect()
+        r = c.execute("SELECT * FROM insider_track WHERE owner_cik=?",
+                      (str(owner_cik),)).fetchone()
+    return dict(r) if r else None
+
+
+def top_insider_tracks(limit=25, min_buys=3):
+    with _lock:
+        c = _connect()
+        rows = c.execute(
+            "SELECT * FROM insider_track WHERE sample_ok=1 AND n_buys>=? "
+            "ORDER BY rating DESC LIMIT ?", (int(min_buys), int(limit))).fetchall()
+    return [dict(r) for r in rows]
+
+
+def distinct_buy_owners():
+    with _lock:
+        c = _connect()
+        rows = c.execute(
+            "SELECT DISTINCT owner_cik FROM trades WHERE kind='buy' AND owner_cik!=''"
+        ).fetchall()
+    return [r["owner_cik"] for r in rows]
+
+
+def buys_for_owner(owner_cik):
+    """Compiled open-market buys for one insider (for return scoring)."""
+    with _lock:
+        c = _connect()
+        rows = [dict(r) for r in c.execute(
+            "SELECT * FROM trades WHERE owner_cik=? AND kind='buy' "
+            "ORDER BY filed_at", (str(owner_cik),)).fetchall()]
+    return aggregate.compile_trades(rows)
