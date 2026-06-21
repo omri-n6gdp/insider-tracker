@@ -84,6 +84,9 @@ CREATE TABLE IF NOT EXISTS strategy_positions (
     entry_price REAL, shares REAL, exit_at TEXT, exit_price REAL,
     status TEXT DEFAULT 'open', pnl REAL
 );
+CREATE TABLE IF NOT EXISTS watchlist (
+    kind TEXT, key TEXT, added_at REAL, PRIMARY KEY (kind, key)
+);
 CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
@@ -559,3 +562,34 @@ def close_position(pid, exit_at, exit_price, pnl):
                   "status='closed' WHERE id=?",
                   (exit_at, exit_price, pnl, int(pid)))
         c.commit()
+
+
+# ---------------------------------------------------------------- watchlist
+def add_watch(kind, key):
+    with _lock:
+        c = _connect()
+        c.execute("INSERT OR IGNORE INTO watchlist(kind,key,added_at) VALUES(?,?,?)",
+                  (kind, str(key), time.time()))
+        c.commit()
+
+
+def remove_watch(kind, key):
+    with _lock:
+        c = _connect()
+        c.execute("DELETE FROM watchlist WHERE kind=? AND key=?", (kind, str(key)))
+        c.commit()
+
+
+def list_watch():
+    with _lock:
+        c = _connect()
+        rows = c.execute("SELECT * FROM watchlist ORDER BY added_at DESC").fetchall()
+    return [dict(r) for r in rows]
+
+
+def is_watched(kind, key):
+    with _lock:
+        c = _connect()
+        r = c.execute("SELECT 1 FROM watchlist WHERE kind=? AND key=?",
+                      (kind, str(key))).fetchone()
+    return r is not None
