@@ -94,6 +94,18 @@ export default function Board() {
             <div className="ml-3 font-mono text-[10px] text-text-muted">
               {tradesLoading ? "…" : `${trades.length} rows`}
             </div>
+
+            {/* Export CSV */}
+            <a
+              href={api.csvUrl({ ...(kind ? { kind } : {}), ...(search.trim() ? { q: search.trim() } : {}) })}
+              download
+              className="ml-auto inline-flex items-center gap-1.5 font-mono text-[10px] uppercase tracking-widest px-2.5 py-1 rounded border border-border text-text-muted hover:text-mint hover:border-mint-dim transition-colors"
+            >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+              </svg>
+              CSV
+            </a>
           </div>
 
           {/* Column headers — tight grid matching TradeRow */}

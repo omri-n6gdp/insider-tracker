@@ -19,6 +19,10 @@ export function Layout({ children }: { children: ReactNode }) {
     { label: "Top Buys", to: "/top-buys" },
     { label: "Smart Money", to: "/smart-money" },
     { label: "Strategy", to: "/strategy" },
+    { label: "Holdings", to: "/holdings" },
+    { label: "Sectors", to: "/sectors" },
+    { label: "Watchlist", to: "/watchlist" },
+    { label: "Digest", to: "/digest" },
   ] as const;
 
   function isActive(to: string) {
@@ -72,7 +76,7 @@ export function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           {/* Nav */}
-          <nav className="flex items-center gap-1 ml-6">
+          <nav className="flex flex-wrap items-center gap-1 ml-6">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.to}

@@ -6,6 +6,7 @@ import { PriceChart } from "../components/PriceChart";
 import { QuantPanel } from "../components/QuantPanel";
 import { TradeTable } from "../components/TradeTable";
 import { Async } from "../components/Async";
+import { StarButton } from "../components/StarButton";
 
 export default function Stock() {
   const { ticker } = useParams<{ ticker: string }>();
@@ -40,13 +41,16 @@ export default function Stock() {
 
       {/* Page header */}
       <div className="px-6 pt-2 pb-4 border-b border-border">
-        <div className="flex items-baseline gap-3 flex-wrap">
-          <h2 className="font-display font-bold text-3xl text-text-primary tracking-tight leading-none">
-            {ticker?.toUpperCase()}
-          </h2>
-          {name && (
-            <span className="font-mono text-[13px] text-text-muted">{name}</span>
-          )}
+        <div className="flex items-baseline justify-between gap-3 flex-wrap">
+          <div className="flex items-baseline gap-3 flex-wrap">
+            <h2 className="font-display font-bold text-3xl text-text-primary tracking-tight leading-none">
+              {ticker?.toUpperCase()}
+            </h2>
+            {name && (
+              <span className="font-mono text-[13px] text-text-muted">{name}</span>
+            )}
+          </div>
+          {ticker && <StarButton kind="ticker" itemKey={ticker.toUpperCase()} />}
         </div>
       </div>
 

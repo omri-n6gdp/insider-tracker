@@ -6,6 +6,10 @@ import Insider from "./pages/Insider";
 import TopBuys from "./pages/TopBuys";
 import SmartMoney from "./pages/SmartMoney";
 import Strategy from "./pages/Strategy";
+import Holdings from "./pages/Holdings";
+import Sectors from "./pages/Sectors";
+import Watchlist from "./pages/Watchlist";
+import Digest from "./pages/Digest";
 
 export default function App() {
   return (
@@ -17,6 +21,10 @@ export default function App() {
         <Route path="/top-buys" element={<TopBuys />} />
         <Route path="/smart-money" element={<SmartMoney />} />
         <Route path="/strategy" element={<Strategy />} />
+        <Route path="/holdings" element={<Holdings />} />
+        <Route path="/sectors" element={<Sectors />} />
+        <Route path="/watchlist" element={<Watchlist />} />
+        <Route path="/digest" element={<Digest />} />
       </Routes>
     </Layout>
   );

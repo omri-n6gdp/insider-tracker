@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { compactMoney } from "../lib/format";
 import { TradeTable } from "../components/TradeTable";
 import { Async } from "../components/Async";
+import { StarButton } from "../components/StarButton";
 
 export default function Insider() {
   const { cik } = useParams<{ cik: string }>();
@@ -44,22 +45,25 @@ export default function Insider() {
               </span>
             )}
           </div>
-          {data?.track && (
-            <div className="flex flex-col items-end gap-0.5 shrink-0">
-              <div className="flex items-baseline gap-2">
-                <span className="font-mono text-[9px] uppercase tracking-widest text-text-muted">
-                  Smart-money rating
-                </span>
-                <span className="font-mono text-xl font-medium text-mint tabular-nums leading-none">
-                  {Math.round(data.track.rating)}
-                  <span className="font-mono text-[11px] text-text-muted">/100</span>
+          <div className="flex flex-col items-end gap-2 shrink-0">
+            {cik && <StarButton kind="insider" itemKey={cik} />}
+            {data?.track && (
+              <div className="flex flex-col items-end gap-0.5">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-mono text-[9px] uppercase tracking-widest text-text-muted">
+                    Smart-money rating
+                  </span>
+                  <span className="font-mono text-xl font-medium text-mint tabular-nums leading-none">
+                    {Math.round(data.track.rating)}
+                    <span className="font-mono text-[11px] text-text-muted">/100</span>
+                  </span>
+                </div>
+                <span className="font-mono text-[9px] text-text-faint">
+                  {data.track.n_buys} qualifying {data.track.n_buys === 1 ? "buy" : "buys"}
                 </span>
               </div>
-              <span className="font-mono text-[9px] text-text-faint">
-                {data.track.n_buys} qualifying {data.track.n_buys === 1 ? "buy" : "buys"}
-              </span>
-            </div>
-          )}
+            )}
+          </div>
         </div>
       </div>
 
