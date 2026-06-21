@@ -25,6 +25,9 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
 - **`backend/db.py`** — SQLite (`data/insider.db`, WAL). One `trades` table,
   deduped by `uid = accession:index`. Provides `query_trades`, `stats`,
   `clusters`, `tickers`. Single module-level connection guarded by a lock.
+  Phase 5 added a `watchlist` table (`add/remove/list/is_watched`), a
+  `sector_flow()` aggregate (recent trades × cached `fundamentals.sector`), and
+  `watchlist_activity()` (compiled recent trades for watched tickers/insiders).
 - **`backend/sample.py`** — ~16 hand-built demo rows (source='sample') seeded on
   first launch so the UI is never blank; auto-deleted once live data arrives.
 - **`backend/main.py`** — FastAPI. Background daemon thread does an initial
@@ -64,6 +67,13 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   SEC daily-index files (`parse_form_index` keeps exact "4"; cursor in `meta`).
   Endpoints `/api/backfill` (POST) + `/api/backfill/status`. A background thread
   advances strategy scoreboards each refresh.
+- **`backend/digest.py`** — pure `build(db, holdings_mod)` composer for the daily
+  digest: fresh cluster buys + insider sell-alerts in your holdings + watchlist
+  activity. Endpoint `/api/digest`. The background worker calls
+  `_maybe_daily_digest()` once per day to fire a best-effort `osascript` macOS
+  notification (guarded by a `digest_date` meta key). Phase 5 also added
+  `/api/sectors`, `/api/watchlist` (GET/POST/DELETE), and `/api/export.csv`
+  (compiled-trade CSV honoring the Board's kind/search filters).
 - **Tests:** backend `./.venv/bin/python -m pytest`; frontend `cd frontend &&
   npx vitest run`.
 - **`frontend/`** — React + Vite + TypeScript SPA (Tailwind, TanStack Query,
@@ -82,7 +92,13 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   Money** page (`/smart-money` — insider track-record leaderboard). Phase 4
   added the **Strategy Lab** (`/strategy` — rule builder, backtest with an
   equity-vs-SPY curve, saved-strategy live scoreboards, and a "Build history"
-  control for the EDGAR backfill).
+  control for the EDGAR backfill). Phase 5 added the **Holdings** page
+  (`/holdings` — T212 positions × insider summary + coral SELL-ALERT badges),
+  the **Sectors** page (`/sectors` — net insider $ by sector as diverging
+  mint/coral bars), the **Watchlist** page (`/watchlist` — starred tickers/
+  insiders + recent activity), and the **Digest** page (`/digest` — fresh
+  clusters + holdings sell-alerts + watchlist activity). A `<StarButton>` on
+  Stock/Insider headers toggles the watchlist; the Board has an Export-CSV link.
 
 ## Signal logic worth knowing
 - **Cluster buys** = a company where ≥2 distinct insiders (`owner_cik`) made
