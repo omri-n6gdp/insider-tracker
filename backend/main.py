@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
 
-from . import db, sec, market, holdings, detail, track_record, score
+from . import db, sec, market, holdings, detail, track_record, score, strategy, backfill
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -96,11 +96,31 @@ def _recompute_ratings():
         STATUS["rating_running"] = False
 
 
+def _run_backfill(max_days=20):
+    if STATUS.get("backfill_running"):
+        return
+    STATUS["backfill_running"] = True
+    try:
+        STATUS["backfill_last"] = backfill.run(db, max_days=max_days)
+    except Exception as ex:
+        STATUS["backfill_last"] = {"error": str(ex)}
+    finally:
+        STATUS["backfill_running"] = False
+
+
+def _advance_scoreboards():
+    try:
+        strategy.advance_scoreboard(db, market)
+    except Exception as ex:
+        STATUS["scoreboard_error"] = str(ex)
+
+
 def _worker():
     do_refresh(pages=INITIAL_PAGES)
     _recompute_ratings()
     while not _stop.wait(REFRESH_SECONDS):
         do_refresh(pages=1)
+        _advance_scoreboards()
 
 
 @asynccontextmanager
@@ -213,6 +233,66 @@ def api_refresh(pages: int = 1):
         return JSONResponse({"ok": False, "message": "Already refreshing."}, status_code=202)
     threading.Thread(target=do_refresh, kwargs={"pages": pages}, daemon=True).start()
     return {"ok": True, "message": "Refresh started."}
+
+
+@app.get("/api/strategies")
+def api_list_strategies():
+    return {"strategies": db.list_strategies()}
+
+
+@app.post("/api/strategies")
+def api_create_strategy(payload: dict):
+    name = (payload.get("name") or "Untitled").strip()
+    rule = payload.get("rule") or {}
+    sid = db.create_strategy(name, rule)
+    return {"id": sid, "strategy": db.get_strategy(sid)}
+
+
+@app.delete("/api/strategies/{sid}")
+def api_delete_strategy(sid: int):
+    db.delete_strategy(sid)
+    return {"ok": True}
+
+
+@app.post("/api/strategies/{sid}/active")
+def api_set_active(sid: int, payload: dict):
+    db.set_strategy_active(sid, bool(payload.get("active", True)))
+    return {"ok": True, "strategy": db.get_strategy(sid)}
+
+
+@app.get("/api/strategies/{sid}/scoreboard")
+def api_scoreboard(sid: int):
+    pos = db.positions_for_strategy(sid)
+    closed = [p for p in pos if p["status"] == "closed"]
+    pnl = sum((p.get("pnl") or 0) for p in closed)
+    wins = sum(1 for p in closed if (p.get("pnl") or 0) > 0)
+    return {"strategy": db.get_strategy(sid), "positions": pos,
+            "open": sum(1 for p in pos if p["status"] == "open"),
+            "closed": len(closed), "realized_pnl": round(pnl, 2),
+            "win_rate": round(wins / len(closed), 4) if closed else None}
+
+
+@app.post("/api/backtest")
+def api_backtest(payload: dict):
+    rule = payload.get("rule") or {}
+    days = payload.get("days")
+    return strategy.run_backtest(db, market, rule, days=days)
+
+
+@app.post("/api/backfill")
+def api_backfill(max_days: int = 20):
+    if STATUS.get("backfill_running"):
+        return JSONResponse({"ok": False, "message": "Already running."}, status_code=202)
+    threading.Thread(target=_run_backfill, kwargs={"max_days": max_days},
+                     daemon=True).start()
+    return {"ok": True, "message": "Backfill started."}
+
+
+@app.get("/api/backfill/status")
+def api_backfill_status():
+    return {"running": STATUS.get("backfill_running", False),
+            "last": STATUS.get("backfill_last"),
+            "cursor": db.get_meta("backfill_cursor")}
 
 
 def resolve_static_path(dist_dir, full_path):
