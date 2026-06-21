@@ -593,3 +593,50 @@ def is_watched(kind, key):
         r = c.execute("SELECT 1 FROM watchlist WHERE kind=? AND key=?",
                       (kind, str(key))).fetchone()
     return r is not None
+
+
+# ---------------------------------------------------------------- sector flow
+def sector_flow(days=30):
+    """Net insider $ by sector, over tickers that have cached fundamentals."""
+    with _lock:
+        c = _connect()
+        rows = c.execute(
+            "SELECT f.sector sector, "
+            "COALESCE(SUM(CASE WHEN t.kind='buy' THEN t.value ELSE 0 END),0) buy_value, "
+            "COALESCE(SUM(CASE WHEN t.kind='sell' THEN t.value ELSE 0 END),0) sell_value, "
+            "COUNT(DISTINCT t.ticker) tickers "
+            "FROM trades t JOIN fundamentals f ON f.ticker=t.ticker "
+            "WHERE f.sector IS NOT NULL AND f.sector!='' "
+            "AND t.filed_at >= date('now', ?) "
+            "GROUP BY f.sector ORDER BY buy_value DESC",
+            (f"-{int(days)} days",)).fetchall()
+    out = []
+    for r in rows:
+        d = dict(r)
+        d["net_value"] = (d["buy_value"] or 0) - (d["sell_value"] or 0)
+        out.append(d)
+    return out
+
+
+def watchlist_activity(days=14, limit=50):
+    """Recent compiled trades for watched tickers + watched insiders."""
+    watch = list_watch()
+    tickers = [w["key"].upper() for w in watch if w["kind"] == "ticker"]
+    owners = [w["key"] for w in watch if w["kind"] == "insider"]
+    if not tickers and not owners:
+        return []
+    clauses, params = [], []
+    if tickers:
+        clauses.append(f"ticker IN ({','.join('?' for _ in tickers)})")
+        params += tickers
+    if owners:
+        clauses.append(f"owner_cik IN ({','.join('?' for _ in owners)})")
+        params += owners
+    where = "(" + " OR ".join(clauses) + ")"
+    params.append(f"-{int(days)} days")
+    with _lock:
+        c = _connect()
+        rows = [dict(r) for r in c.execute(
+            f"SELECT * FROM trades WHERE {where} AND filed_at >= date('now', ?) "
+            "ORDER BY filed_at DESC", params).fetchall()]
+    return aggregate.compile_trades(rows)[:limit]
