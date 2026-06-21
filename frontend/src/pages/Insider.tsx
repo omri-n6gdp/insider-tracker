@@ -33,14 +33,32 @@ export default function Insider() {
 
       {/* Page header */}
       <div className="px-6 pt-2 pb-4 border-b border-border">
-        <div className="flex flex-col gap-1">
-          <h2 className="font-display font-bold text-3xl text-text-primary tracking-tight leading-none">
-            {data?.owner_name ?? "Insider"}
-          </h2>
-          {data?.roles && (
-            <span className="font-mono text-[11px] text-text-muted">
-              {data.roles}
-            </span>
+        <div className="flex items-start justify-between gap-4 flex-wrap">
+          <div className="flex flex-col gap-1">
+            <h2 className="font-display font-bold text-3xl text-text-primary tracking-tight leading-none">
+              {data?.owner_name ?? "Insider"}
+            </h2>
+            {data?.roles && (
+              <span className="font-mono text-[11px] text-text-muted">
+                {data.roles}
+              </span>
+            )}
+          </div>
+          {data?.track && (
+            <div className="flex flex-col items-end gap-0.5 shrink-0">
+              <div className="flex items-baseline gap-2">
+                <span className="font-mono text-[9px] uppercase tracking-widest text-text-muted">
+                  Smart-money rating
+                </span>
+                <span className="font-mono text-xl font-medium text-mint tabular-nums leading-none">
+                  {Math.round(data.track.rating)}
+                  <span className="font-mono text-[11px] text-text-muted">/100</span>
+                </span>
+              </div>
+              <span className="font-mono text-[9px] text-text-faint">
+                {data.track.n_buys} qualifying {data.track.n_buys === 1 ? "buy" : "buys"}
+              </span>
+            </div>
           )}
         </div>
       </div>

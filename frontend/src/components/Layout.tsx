@@ -13,7 +13,17 @@ export function Layout({ children }: { children: ReactNode }) {
   });
 
   const isLive = status?.source === "live";
-  const isHome = location.pathname === "/";
+
+  const NAV_LINKS = [
+    { label: "Board", to: "/" },
+    { label: "Top Buys", to: "/top-buys" },
+    { label: "Smart Money", to: "/smart-money" },
+  ] as const;
+
+  function isActive(to: string) {
+    if (to === "/") return location.pathname === "/";
+    return location.pathname.startsWith(to);
+  }
 
   return (
     <div className="min-h-screen bg-surface relative">
@@ -61,13 +71,21 @@ export function Layout({ children }: { children: ReactNode }) {
           </Link>
 
           {/* Nav */}
-          {isHome && (
-            <nav className="flex items-center gap-4 ml-6">
-              <span className="font-mono text-[11px] uppercase tracking-widest text-mint border-b border-mint pb-0.5">
-                Board
-              </span>
-            </nav>
-          )}
+          <nav className="flex items-center gap-1 ml-6">
+            {NAV_LINKS.map((link) => (
+              <Link
+                key={link.to}
+                to={link.to}
+                className={`font-mono text-[11px] uppercase tracking-widest px-3 py-1 rounded transition-colors ${
+                  isActive(link.to)
+                    ? "text-mint bg-surface-2"
+                    : "text-text-muted hover:text-text-secondary hover:bg-surface-2"
+                }`}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
 
           {/* Spacer */}
           <div className="flex-1" />
