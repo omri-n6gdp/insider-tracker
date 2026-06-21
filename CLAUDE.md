@@ -45,7 +45,16 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
 - **`backend/detail.py`** — `stock_detail(ticker)` / `insider_detail(cik)`
   assemblers (pure composition of `db` + `market`). Endpoints `/api/stock/{ticker}`
   (quant + price candles + insider markers + compiled history + net summary) and
-  `/api/insider/{cik}` (cross-company history + roles + totals).
+  `/api/insider/{cik}` (cross-company history + roles + totals + cached `track`).
+- **`backend/track_record.py`** — insider "smart-money" rating: forward,
+  market-adjusted (vs SPY) returns after each open-market buy → a 0-100 rating
+  shrunk toward neutral for small samples; `recompute(db, market)` caches into
+  the `insider_track` table. A background thread runs it once after the initial
+  refresh (and a `POST /api/recompute` triggers it manually).
+- **`backend/score.py`** — Top Buys: five 0-100 sub-scores (cluster, seniority,
+  size vs market cap, track record, valuation) blended by fixed weights into an
+  explainable total. `top_buys(db, market)`. Endpoints `/api/recommendations`
+  and `/api/smart-money` (leaderboard from `insider_track`).
 - **Tests:** backend `./.venv/bin/python -m pytest`; frontend `cd frontend &&
   npx vitest run`.
 - **`frontend/`** — React + Vite + TypeScript SPA (Tailwind, TanStack Query,
@@ -58,7 +67,10 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   sidebar + filters); Phase 2B shipped the **Stock page** (`/stock/:ticker` —
   price chart with insider markers, quant/fundamentals panel, insider history
   table) and the **Insider page** (`/insider/:cik` — cross-company history,
-  roles, totals, ticker links). Both support hard-refresh deep links.
+  roles, totals, ticker links, smart-money rating chip). Both support
+  hard-refresh deep links. Phase 3 added the **Top Buys** page (`/top-buys` —
+  ranked, explainable recommendations with sub-score bars) and the **Smart
+  Money** page (`/smart-money` — insider track-record leaderboard).
 
 ## Signal logic worth knowing
 - **Cluster buys** = a company where ≥2 distinct insiders (`owner_cik`) made
