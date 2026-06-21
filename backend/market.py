@@ -18,12 +18,17 @@ def _norm(ticker):
 
 
 def _clean_num(v):
-    """yfinance often returns NaN/Infinity for missing metrics (no P/E, no
-    dividend, etc.). Those are not JSON-compliant — Starlette's JSONResponse
-    raises on them and the endpoint would 500 — so coerce them to None."""
-    if isinstance(v, float) and not math.isfinite(v):
+    """yfinance returns NaN/Infinity (sometimes as the *string* 'Infinity') for
+    missing metrics (no P/E, no dividend, etc.). Those are not JSON-compliant
+    and break downstream numeric comparisons — coerce anything non-finite or
+    non-numeric to None, and normalize valid values to float."""
+    if v is None:
         return None
-    return v
+    try:
+        f = float(v)
+    except (TypeError, ValueError):
+        return None
+    return f if math.isfinite(f) else None
 
 
 def _download_history(ticker, period="1y"):

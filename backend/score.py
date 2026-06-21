@@ -4,6 +4,7 @@ Five 0-100 sub-scores (cluster, seniority, size vs market cap, insider track
 record, valuation) blended by fixed weights into a total, with the breakdown
 returned so every pick shows *why* it ranks. Open-market buys (code P) only.
 """
+import math
 
 WEIGHTS = {"cluster": 0.25, "seniority": 0.20, "size": 0.20,
            "track": 0.20, "valuation": 0.15}
@@ -48,6 +49,12 @@ def size_score(buy_value, market_cap):
 def valuation_score(pe):
     if pe is None:
         return 50.0
+    try:
+        pe = float(pe)
+    except (TypeError, ValueError):
+        return 50.0
+    if not math.isfinite(pe):
+        return 50.0
     if pe <= 0:
         return 45.0          # unprofitable: mild penalty, not informative
     if pe < 15:
@@ -79,7 +86,8 @@ def top_buys(db, market, days=30, limit=20):
         g = by_ticker.setdefault(t["ticker"], {
             "ticker": t["ticker"], "issuer_name": t.get("issuer_name"),
             "owners": set(), "buy_value": 0.0, "roles": [], "trades": []})
-        g["owners"].add(t.get("owner_cik"))
+        if t.get("owner_cik"):
+            g["owners"].add(t["owner_cik"])
         g["buy_value"] += t.get("value") or 0
         g["roles"].append(t.get("officer_title") or "")
         g["roles"].append(t.get("roles") or "")

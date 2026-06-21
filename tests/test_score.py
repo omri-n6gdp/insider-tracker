@@ -8,6 +8,10 @@ def test_subscores_are_bounded_0_100():
     assert score.size_score(1_000_000, 1_000_000_000) > score.size_score(1000, 1_000_000_000)
     assert score.valuation_score(12) > score.valuation_score(80)   # cheaper = higher
     assert score.valuation_score(None) == 50.0                      # unknown = neutral
+    # yfinance sometimes stores P/E as the string "Infinity" or junk; never crash
+    assert score.valuation_score("Infinity") == 50.0
+    assert score.valuation_score(float("inf")) == 50.0
+    assert score.valuation_score("n/a") == 50.0
 
 
 def test_total_is_weighted_blend_and_bounded():
