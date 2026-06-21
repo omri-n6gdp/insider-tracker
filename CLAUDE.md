@@ -55,6 +55,15 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   size vs market cap, track record, valuation) blended by fixed weights into an
   explainable total. `top_buys(db, market)`. Endpoints `/api/recommendations`
   and `/api/smart-money` (leaderboard from `insider_track`).
+- **`backend/strategy.py`** — rule `passes`/`signals`, a `backtest` (sequential
+  equal-bankroll equity curve vs SPY), `run_backtest` glue, and
+  `advance_scoreboard` (opens/closes paper positions for active strategies).
+  Tables `strategies` + `strategy_positions`. Endpoints: `/api/strategies`
+  (CRUD), `/api/strategies/{id}/scoreboard`, `/api/backtest`.
+- **`backend/backfill.py`** — bounded, resumable historical Form 4 ingest from
+  SEC daily-index files (`parse_form_index` keeps exact "4"; cursor in `meta`).
+  Endpoints `/api/backfill` (POST) + `/api/backfill/status`. A background thread
+  advances strategy scoreboards each refresh.
 - **Tests:** backend `./.venv/bin/python -m pytest`; frontend `cd frontend &&
   npx vitest run`.
 - **`frontend/`** — React + Vite + TypeScript SPA (Tailwind, TanStack Query,
@@ -70,7 +79,10 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   roles, totals, ticker links, smart-money rating chip). Both support
   hard-refresh deep links. Phase 3 added the **Top Buys** page (`/top-buys` —
   ranked, explainable recommendations with sub-score bars) and the **Smart
-  Money** page (`/smart-money` — insider track-record leaderboard).
+  Money** page (`/smart-money` — insider track-record leaderboard). Phase 4
+  added the **Strategy Lab** (`/strategy` — rule builder, backtest with an
+  equity-vs-SPY curve, saved-strategy live scoreboards, and a "Build history"
+  control for the EDGAR backfill).
 
 ## Signal logic worth knowing
 - **Cluster buys** = a company where ≥2 distinct insiders (`owner_cik`) made
