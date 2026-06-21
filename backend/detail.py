@@ -52,4 +52,5 @@ def insider_detail(owner_cik):
         "trades": trades,
         "summary": {"buys": buys, "sells": sells, "buy_value": buy_v,
                     "sell_value": sell_v, "net_value": buy_v - sell_v},
+        "track": db.get_insider_track(owner_cik),
     }

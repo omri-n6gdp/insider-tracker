@@ -14,7 +14,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Query
 from fastapi.responses import FileResponse, JSONResponse
 
-from . import db, sec, market, holdings, detail
+from . import db, sec, market, holdings, detail, track_record, score
 from .sample import sample_rows
 
 FRONTEND_DIR = os.path.join(os.path.dirname(__file__), "..", "frontend")
@@ -82,8 +82,23 @@ def do_refresh(pages):
         _refresh_lock.release()
 
 
+def _recompute_ratings():
+    if STATUS.get("rating_running"):
+        return
+    STATUS["rating_running"] = True
+    try:
+        n = track_record.recompute(db, market)
+        STATUS["ratings_computed"] = n
+        STATUS["ratings_at"] = _now()
+    except Exception as ex:
+        STATUS["ratings_error"] = str(ex)
+    finally:
+        STATUS["rating_running"] = False
+
+
 def _worker():
     do_refresh(pages=INITIAL_PAGES)
+    _recompute_ratings()
     while not _stop.wait(REFRESH_SECONDS):
         do_refresh(pages=1)
 
@@ -172,6 +187,24 @@ def api_stock(ticker: str, period: str = "1y"):
 @app.get("/api/insider/{cik}")
 def api_insider(cik: str):
     return detail.insider_detail(cik)
+
+
+@app.get("/api/recommendations")
+def api_recommendations(days: int = 30, limit: int = 20):
+    return {"recommendations": score.top_buys(db, market, days=days, limit=limit)}
+
+
+@app.get("/api/smart-money")
+def api_smart_money(limit: int = 25, min_buys: int = 2):
+    return {"insiders": db.top_insider_tracks(limit=limit, min_buys=min_buys)}
+
+
+@app.post("/api/recompute")
+def api_recompute():
+    if STATUS.get("rating_running"):
+        return JSONResponse({"ok": False, "message": "Already running."}, status_code=202)
+    threading.Thread(target=_recompute_ratings, daemon=True).start()
+    return {"ok": True, "message": "Rating recompute started."}
 
 
 @app.post("/api/refresh")
