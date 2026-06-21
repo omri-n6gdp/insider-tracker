@@ -1,4 +1,4 @@
-import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail, Recommendation, InsiderTrack, StrategyRule, BacktestResult, Strategy, Scoreboard } from "./types";
+import type { Trade, Stats, Cluster, Status, StockDetail, InsiderDetail, Recommendation, InsiderTrack, StrategyRule, BacktestResult, Strategy, Scoreboard, SectorFlow, WatchItem, HoldingsResp, Digest } from "./types";
 
 async function getJSON<T>(path: string): Promise<T> {
   const res = await fetch(path);
@@ -60,4 +60,24 @@ export const api = {
     getJSON<{ running: boolean; last: Record<string, unknown> | null; cursor: string | null }>(
       "/api/backfill/status"
     ),
+  // Extras (Phase 5)
+  holdings: () => getJSON<HoldingsResp>("/api/holdings"),
+  sectors: (days = 30) => getJSON<{ sectors: SectorFlow[] }>(`/api/sectors?days=${days}`),
+  watchlist: () =>
+    getJSON<{ watchlist: WatchItem[]; activity: Trade[] }>("/api/watchlist"),
+  addWatch: (kind: string, key: string) =>
+    postJSON<{ ok: boolean }>("/api/watchlist", { kind, key }),
+  removeWatch: (kind: string, key: string) =>
+    deleteJSON<{ ok: boolean }>(
+      `/api/watchlist?kind=${encodeURIComponent(kind)}&key=${encodeURIComponent(key)}`
+    ),
+  digest: () => getJSON<Digest>("/api/digest"),
+  csvUrl: (params: Record<string, string | number> = {}) => {
+    const q = new URLSearchParams(
+      Object.entries(params)
+        .filter(([, v]) => v !== "" && v !== undefined && v !== null)
+        .map(([k, v]) => [k, String(v)])
+    ).toString();
+    return `/api/export.csv${q ? "?" + q : ""}`;
+  },
 };

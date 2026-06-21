@@ -131,6 +131,48 @@ export interface Strategy {
   activated_at: string | null;
 }
 
+export interface SectorFlow {
+  sector: string;
+  buy_value: number;
+  sell_value: number;
+  net_value: number;
+  tickers: number;
+}
+
+export interface WatchItem {
+  kind: "ticker" | "insider";
+  key: string;
+  added_at: number;
+}
+
+export interface InsiderSummary {
+  buys: number; sells: number;
+  buy_value: number; sell_value: number;
+  net_value: number; sell_alert: boolean;
+}
+
+export interface Holding {
+  ticker: string;
+  raw_ticker: string;
+  is_us_equity: boolean;
+  qty: number;
+  avg_price: number;
+  current_price: number;
+  ppl?: number;
+  insider: InsiderSummary | null;
+}
+
+export interface HoldingsResp {
+  source: string;
+  positions: Holding[];
+}
+
+export interface Digest {
+  clusters: Cluster[];
+  holdings_alerts: Holding[];
+  watchlist_activity: Trade[];
+}
+
 export interface Scoreboard {
   strategy: Strategy | null;
   positions: Array<{
