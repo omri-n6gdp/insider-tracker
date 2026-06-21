@@ -3,9 +3,9 @@ from backend import backfill
 SAMPLE = """Description ...
 Form Type   Company Name        CIK   Date Filed  File Name
 ---------------------------------------------------------------
-4           Acme Inc            12345 2026-06-10  edgar/data/12345/0001.txt
-4/A         Beta Co             222   2026-06-10  edgar/data/222/0002.txt
-8-K         Gamma               333   2026-06-10  edgar/data/333/0003.txt
+4           Acme Inc            12345 20260610  edgar/data/12345/0001.txt
+4/A         Beta Co             222   20260610  edgar/data/222/0002.txt
+8-K         Gamma               333   20260610  edgar/data/333/0003.txt
 """
 
 

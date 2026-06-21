@@ -19,10 +19,11 @@ def parse_form_index(text):
         if len(parts) < 5 or parts[0] != "4":
             continue
         # form.idx is fixed-width; the last token is the path, first is "4",
-        # the CIK is the token before the date (YYYY-MM-DD).
+        # the CIK is the token before the date. SEC daily-index dates are
+        # YYYYMMDD (8 digits, no dashes).
         path = parts[-1]
         date_i = next((i for i, p in enumerate(parts)
-                       if len(p) == 10 and p[4] == "-" and p[7] == "-"), None)
+                       if len(p) == 8 and p.isdigit()), None)
         if date_i is None or date_i < 1:
             continue
         cik = parts[date_i - 1]

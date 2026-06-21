@@ -123,7 +123,6 @@ def advance_scoreboard(db_mod, market):
         # close matured positions
         for p in db_mod.open_positions(s["id"]):
             candles = market.get_prices(p["ticker"], period="1y")["candles"]
-            exit_px = forward_return  # noqa  (use close lookup below)
             px = _close_at_offset(candles, p["opened_at"], hold)
             if px is not None:
                 pnl = (px - p["entry_price"]) * (p.get("shares") or 1)
