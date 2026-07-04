@@ -71,6 +71,17 @@ def _txt(el, path):
     return f.text.strip() if f is not None and f.text else ""
 
 
+# Filers write these placeholders when the issuer has no public trading symbol.
+# Treating them as a real ticker would merge unrelated companies in ticker-keyed
+# aggregates (e.g. clusters), so normalize them to an empty string.
+_INVALID_TICKERS = {"", "NONE", "N/A", "NA", "N.A.", "-", "--"}
+
+
+def _norm_ticker(raw):
+    t = (raw or "").strip().upper()
+    return "" if t in _INVALID_TICKERS else t
+
+
 def fetch_feed(start=0, count=100):
     """Return list of {cik, acc, accession, filed_at, period_url} from the
     'latest filings' Form 4 feed (newest first)."""
@@ -115,7 +126,7 @@ def parse_ownership(raw, filing_url, entry):
     root = ET.fromstring(raw)
     issuer = root.find("issuer")
     issuer_name = _txt(issuer, "issuerName")
-    ticker = _txt(issuer, "issuerTradingSymbol").upper()
+    ticker = _norm_ticker(_txt(issuer, "issuerTradingSymbol"))
     issuer_cik = _txt(issuer, "issuerCik")
     period = _txt(root, "periodOfReport")
 

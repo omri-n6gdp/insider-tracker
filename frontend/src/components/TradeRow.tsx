@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { Trade } from "../lib/types";
-import { compactMoney, shares } from "../lib/format";
+import { compactMoney, shares, hasTicker } from "../lib/format";
 
 interface Props {
   trade: Trade;
@@ -42,13 +42,17 @@ export function TradeRow({ trade }: Props) {
 
       {/* Ticker */}
       <div className="shrink-0 min-w-0">
-        <Link
-          to={`/stock/${trade.ticker}`}
-          className="font-mono text-[12px] font-medium text-text-primary hover:text-mint transition-colors"
-          onClick={(e) => e.stopPropagation()}
-        >
-          {trade.ticker}
-        </Link>
+        {hasTicker(trade.ticker) ? (
+          <Link
+            to={`/stock/${trade.ticker}`}
+            className="font-mono text-[12px] font-medium text-text-primary hover:text-mint transition-colors"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {trade.ticker}
+          </Link>
+        ) : (
+          <span className="font-mono text-[12px] text-text-faint" title="No ticker on this filing">—</span>
+        )}
       </div>
 
       {/* Nx compile badge */}

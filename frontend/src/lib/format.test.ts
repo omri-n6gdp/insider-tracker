@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { money, compactMoney, signedPct, shares } from "./format";
+import { money, compactMoney, signedPct, shares, hasTicker } from "./format";
 
 describe("formatters", () => {
   it("formats money with no decimals", () => {
@@ -20,5 +20,12 @@ describe("formatters", () => {
   it("formats share counts", () => {
     expect(shares(12345)).toBe("12,345");
     expect(shares(null)).toBe("—");
+  });
+  it("detects a real, linkable ticker", () => {
+    expect(hasTicker("AAPL")).toBe(true);
+    expect(hasTicker("")).toBe(false);
+    expect(hasTicker("   ")).toBe(false);
+    expect(hasTicker(null)).toBe(false);
+    expect(hasTicker(undefined)).toBe(false);
   });
 });

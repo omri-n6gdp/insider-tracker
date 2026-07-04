@@ -31,7 +31,7 @@ export function Layout({ children }: { children: ReactNode }) {
   }
 
   return (
-    <div className="min-h-screen bg-surface relative">
+    <div className="h-screen flex flex-col bg-surface relative overflow-hidden">
       {/* scanline texture */}
       <div
         className="fixed inset-0 pointer-events-none z-50"
@@ -41,7 +41,7 @@ export function Layout({ children }: { children: ReactNode }) {
       />
 
       {/* Masthead */}
-      <header className="border-b border-border bg-surface-1 sticky top-0 z-40">
+      <header className="border-b border-border bg-surface-1 shrink-0 z-40">
         {/* Top bar: status + meta */}
         <div className="flex items-center justify-between px-6 py-1 border-b border-border-muted">
           <div className="flex items-center gap-3 font-mono text-[10px] text-text-muted tracking-widest uppercase">
@@ -97,7 +97,7 @@ export function Layout({ children }: { children: ReactNode }) {
         </div>
       </header>
 
-      <main className="relative z-10">
+      <main className="relative z-10 flex-1 min-h-0 overflow-y-auto">
         {children}
       </main>
     </div>

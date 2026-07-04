@@ -91,11 +91,28 @@ CREATE TABLE IF NOT EXISTS meta (key TEXT PRIMARY KEY, value TEXT);
 """
 
 
+# Placeholder tickers that filers use when an issuer has no public symbol.
+# Kept in sync with sec._INVALID_TICKERS (non-empty members only).
+_INVALID_TICKERS = ("NONE", "N/A", "NA", "N.A.", "-", "--")
+
+
+def normalize_tickers():
+    """Blank out placeholder tickers so ticker-less filings don't merge distinct
+    companies in ticker-keyed aggregates like clusters(). Idempotent."""
+    ph = ",".join("?" for _ in _INVALID_TICKERS)
+    with _lock:
+        c = _connect()
+        c.execute(f"UPDATE trades SET ticker='' WHERE ticker IN ({ph})",
+                  _INVALID_TICKERS)
+        c.commit()
+
+
 def init_db():
     with _lock:
         c = _connect()
         c.executescript(SCHEMA)
         c.commit()
+    normalize_tickers()
 
 
 # ---------------------------------------------------------------- meta

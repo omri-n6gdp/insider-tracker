@@ -118,6 +118,11 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   skipped gracefully (`errors`/`processed` in the refresh summary).
 - `value = shares × price`; grants/options often have price 0 → value shown as
   "—" and excluded from $ stats.
+- Filings for issuers with no public symbol carry placeholder tickers (`NONE`,
+  `N/A`, …). `sec._norm_ticker` blanks these at parse time and
+  `db.normalize_tickers()` (run by `init_db`) cleans existing rows, so ticker-
+  keyed aggregates like `clusters()` don't merge unrelated companies. The
+  frontend's `hasTicker()` renders ticker-less rows as "—" (no dead link).
 - No external Python deps beyond `fastapi` + `uvicorn[standard]` (see
   `requirements.txt`). SEC fetching uses only stdlib for resilience.
 ```

@@ -48,7 +48,7 @@ export default function Board() {
   const clusters: Cluster[] = clustersData?.clusters ?? [];
 
   return (
-    <div className="flex flex-col h-[calc(100vh-96px)]">
+    <div className="flex flex-col h-full">
       {/* Stat strip */}
       <StatStrip stats={statsData as Stats | undefined} loading={statsLoading} />
 

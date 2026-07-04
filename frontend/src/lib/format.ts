@@ -23,3 +23,10 @@ export function shares(v: number | null | undefined): string {
   if (v == null || !isFinite(v)) return "—";
   return Math.round(v).toLocaleString("en-US");
 }
+
+/** Whether a trade has a real, linkable ticker. The backend blanks placeholder
+ *  symbols (NONE/N/A/…) to "", so ticker-less filings shouldn't render a
+ *  /stock/ link that would 404. */
+export function hasTicker(t: string | null | undefined): boolean {
+  return !!t && t.trim() !== "";
+}
