@@ -35,7 +35,10 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   `INSIDER_REFRESH_SECONDS` (default 300). Serves `/api/*` then mounts the
   built React app from `frontend/dist/` at `/` (503 with a "run ./run.sh"
   message if not built yet). `STATUS` dict drives the live indicator.
-  `_load_dotenv()` loads `.env` (T212 key) at startup.
+  `_load_dotenv()` loads `.env` (T212 key) at startup. A `_warm_quant_data()`
+  background step pre-caches fundamentals for the top-active tickers (once after
+  the initial refresh, then each loop) so the Sectors page isn't empty until
+  stocks are visited.
 - **`backend/aggregate.py`** — pure `compile_trades(rows)` that collapses
   multiple Form 4 lines into one logical trade (volume-weighted price). Used by
   `db.query_trades(compiled=True)` and exposed via `/api/trades?compiled=`.
@@ -62,7 +65,9 @@ Override port with `PORT=xxxx`. Stop with Ctrl+C.
   equal-bankroll equity curve vs SPY), `run_backtest` glue, and
   `advance_scoreboard` (opens/closes paper positions for active strategies).
   Tables `strategies` + `strategy_positions`. Endpoints: `/api/strategies`
-  (CRUD), `/api/strategies/{id}/scoreboard`, `/api/backtest`.
+  (CRUD), `/api/strategies/{id}/scoreboard`, `/api/backtest`. An unspecified
+  backtest window defaults to `DEFAULT_BACKTEST_DAYS` (365) so the signal set —
+  and thus the per-ticker yfinance fetches — stays bounded.
 - **`backend/backfill.py`** — bounded, resumable historical Form 4 ingest from
   SEC daily-index files (`parse_form_index` keeps exact "4"; cursor in `meta`).
   Endpoints `/api/backfill` (POST) + `/api/backfill/status`. A background thread

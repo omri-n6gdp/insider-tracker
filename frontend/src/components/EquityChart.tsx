@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { createChart, ColorType, LineStyle } from "lightweight-charts";
 import type { EquityPoint } from "../lib/types";
+import { dedupeByDate } from "../lib/chart";
 
 interface EquityChartProps {
   equity: EquityPoint[];
@@ -44,15 +45,18 @@ export function EquityChart({ equity, benchmark }: EquityChartProps) {
       priceLineVisible: false,
     });
 
-    if (equity.length > 0) {
+    const eq = dedupeByDate(equity);
+    const bench = dedupeByDate(benchmark);
+
+    if (eq.length > 0) {
       equitySeries.setData(
-        equity.map((p) => ({ time: p.date as `${number}-${number}-${number}`, value: p.value }))
+        eq.map((p) => ({ time: p.date as `${number}-${number}-${number}`, value: p.value }))
       );
     }
 
-    if (benchmark.length > 0) {
+    if (bench.length > 0) {
       benchmarkSeries.setData(
-        benchmark.map((p) => ({ time: p.date as `${number}-${number}-${number}`, value: p.value }))
+        bench.map((p) => ({ time: p.date as `${number}-${number}-${number}`, value: p.value }))
       );
     }
 

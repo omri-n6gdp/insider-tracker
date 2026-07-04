@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { toCandles, toMarkers } from "./chart";
+import { toCandles, toMarkers, dedupeByDate } from "./chart";
 import type { Candle, Marker } from "./types";
 
 const candles: Candle[] = [
@@ -26,5 +26,35 @@ describe("chart transforms", () => {
     const reversed = [markers[1], markers[0]];   // sell (later) first
     const m = toMarkers(reversed);
     expect(m.map((x) => x.time)).toEqual(["2026-06-10", "2026-06-11"]);
+  });
+});
+
+describe("dedupeByDate", () => {
+  it("collapses duplicate dates keeping the last (compounded) value", () => {
+    // Two trades on the same day → two equity points sharing a date.
+    const points = [
+      { date: "2026-01-01", value: 1.0 },
+      { date: "2026-01-05", value: 1.1 },
+      { date: "2026-01-05", value: 1.25 },  // second trade same day
+      { date: "2026-01-09", value: 1.3 },
+    ];
+    expect(dedupeByDate(points)).toEqual([
+      { date: "2026-01-01", value: 1.0 },
+      { date: "2026-01-05", value: 1.25 },
+      { date: "2026-01-09", value: 1.3 },
+    ]);
+  });
+  it("returns strictly ascending unique dates even if input is unsorted", () => {
+    const points = [
+      { date: "2026-01-09", value: 1.3 },
+      { date: "2026-01-01", value: 1.0 },
+      { date: "2026-01-09", value: 1.4 },
+    ];
+    const out = dedupeByDate(points);
+    expect(out.map((p) => p.date)).toEqual(["2026-01-01", "2026-01-09"]);
+    expect(out[1].value).toBe(1.4);
+  });
+  it("handles empty input", () => {
+    expect(dedupeByDate([])).toEqual([]);
   });
 });

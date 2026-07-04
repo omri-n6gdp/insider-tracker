@@ -8,6 +8,11 @@ equal-bankroll compounding — an explicit simplification, not advice.
 from . import db
 from .track_record import forward_return  # reuse on/after-date close lookup
 
+# An unbounded backtest scans every buy in history and fetches 2y of prices for
+# each unique ticker — hundreds of yfinance calls. Clamp an unspecified window
+# to one year so the signal set (and thus the number of price fetches) is bounded.
+DEFAULT_BACKTEST_DAYS = 365
+
 
 def passes(rule, trade):
     if rule.get("min_value") and (trade.get("value") or 0) < rule["min_value"]:
@@ -83,6 +88,8 @@ def backtest(sig_list, prices_by_ticker, spy, hold_days=63):
 
 def run_backtest(db_mod, market, rule, days=None):
     """Glue: gather signals, fetch their prices + SPY, backtest."""
+    if days is None:
+        days = DEFAULT_BACKTEST_DAYS
     sigs = signals(db_mod, rule, days=days)
     prices = {}
     for s in sigs:

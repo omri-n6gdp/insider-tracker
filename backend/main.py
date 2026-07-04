@@ -99,6 +99,31 @@ def _recompute_ratings():
         STATUS["rating_running"] = False
 
 
+def _warm_quant_data(limit=25):
+    """Pre-cache fundamentals for the most-active tickers so the Sectors page
+    and quant panels have data without waiting for a user to visit each stock.
+    `market.get_fundamentals` respects its 24h cache, so repeated runs only
+    make network calls for tickers whose data has gone stale."""
+    if STATUS.get("quant_warming"):
+        return 0
+    STATUS["quant_warming"] = True
+    warmed = 0
+    try:
+        for sym in db.tickers()[:limit]:
+            try:
+                market.get_fundamentals(sym)
+                warmed += 1
+            except Exception:
+                continue
+        STATUS["quant_warmed"] = warmed
+        STATUS["quant_warmed_at"] = _now()
+    except Exception as ex:
+        STATUS["quant_error"] = str(ex)
+    finally:
+        STATUS["quant_warming"] = False
+    return warmed
+
+
 def _run_backfill(max_days=20):
     if STATUS.get("backfill_running"):
         return
@@ -147,10 +172,12 @@ def _maybe_daily_digest():
 def _worker():
     do_refresh(pages=INITIAL_PAGES)
     _recompute_ratings()
+    _warm_quant_data()
     while not _stop.wait(REFRESH_SECONDS):
         do_refresh(pages=1)
         _advance_scoreboards()
         _maybe_daily_digest()
+        _warm_quant_data()
 
 
 @asynccontextmanager

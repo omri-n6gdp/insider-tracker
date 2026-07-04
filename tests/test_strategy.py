@@ -45,3 +45,30 @@ def test_backtest_skips_signals_without_prices():
     s1, _ = _sig("AAA", "2026-01-01", 0.1)
     res = strategy.backtest([s1], {}, [], hold_days=10)  # no price data
     assert res["n_trades"] == 0
+
+
+class _FakeMarket:
+    def get_prices(self, ticker, period="1y"):
+        return {"candles": []}
+
+
+def test_run_backtest_bounds_days_by_default(monkeypatch):
+    """An unbounded (days=None) request must be clamped to a default window so
+    it doesn't scan all history and trigger a yfinance fetch per unique ticker."""
+    captured = {}
+    def fake_signals(db_mod, rule, days=None):
+        captured["days"] = days
+        return []
+    monkeypatch.setattr(strategy, "signals", fake_signals)
+    strategy.run_backtest(None, _FakeMarket(), {}, days=None)
+    assert captured["days"] == strategy.DEFAULT_BACKTEST_DAYS
+
+
+def test_run_backtest_respects_explicit_days(monkeypatch):
+    captured = {}
+    def fake_signals(db_mod, rule, days=None):
+        captured["days"] = days
+        return []
+    monkeypatch.setattr(strategy, "signals", fake_signals)
+    strategy.run_backtest(None, _FakeMarket(), {}, days=30)
+    assert captured["days"] == 30
