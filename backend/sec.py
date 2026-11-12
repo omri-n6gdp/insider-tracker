@@ -5,12 +5,16 @@ uvicorn installed. SEC asks for a descriptive User-Agent and <=10 req/sec; we
 throttle to ~6/sec and identify ourselves.
 """
 import json
+import os
 import re
 import time
 import urllib.request
 import xml.etree.ElementTree as ET
 
-USER_AGENT = "insider-tracker (personal research) you@example.com"
+# SEC requires a contact email in the User-Agent. It lives in .env (SEC_USER_AGENT),
+# which is git-ignored, so the address never gets uploaded.
+def _user_agent() -> str:
+    return os.environ.get("SEC_USER_AGENT", "").strip() or "insider-tracker (personal research)"
 
 FEED_URL = ("https://www.sec.gov/cgi-bin/browse-edgar?action=getcurrent"
             "&type=4&owner=include&count={count}&start={start}&output=atom")
@@ -47,7 +51,7 @@ def _get(url, timeout=25):
     dt = time.monotonic() - _last_req[0]
     if dt < MIN_INTERVAL:
         time.sleep(MIN_INTERVAL - dt)
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+    req = urllib.request.Request(url, headers={"User-Agent": _user_agent()})
     try:
         with urllib.request.urlopen(req, timeout=timeout) as r:
             return r.read()
